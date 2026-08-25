@@ -1,0 +1,91 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+  
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 9999px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+  }
+}
+
+/* Glassmorphism helpers */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+}
+
+.glass-panel-dark {
+  background: rgba(26, 77, 46, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Markdown styling in messages */
+.prose-ayurpedia {
+  font-size: 0.95rem;
+  line-height: 1.65;
+}
+
+.prose-ayurpedia p {
+  margin-bottom: 0.75rem;
+}
+
+.prose-ayurpedia p:last-child {
+  margin-bottom: 0;
+}
+
+.prose-ayurpedia ul, .prose-ayurpedia ol {
+  margin-left: 1.25rem;
+  margin-bottom: 0.75rem;
+}
+
+.prose-ayurpedia li {
+  margin-bottom: 0.25rem;
+}
+
+.prose-ayurpedia strong {
+  font-weight: 600;
+  color: #143d24;
+}
+
+.prose-ayurpedia blockquote {
+  border-left: 3px solid #52b788;
+  padding-left: 0.75rem;
+  margin: 0.5rem 0;
+  color: #4b5563;
+  font-style: italic;
+}
+
+.prose-ayurpedia code {
+  background: #f1f5f9;
+  padding: 0.15rem 0.35rem;
+  border-radius: 0.25rem;
+  font-size: 0.875em;
+  font-family: monospace;
+}
