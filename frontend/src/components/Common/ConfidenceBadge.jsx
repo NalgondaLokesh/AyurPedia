@@ -5,7 +5,7 @@ export const ConfidenceBadge = ({ confidence = 'Medium', score = null }) => {
   const confNormalized = (confidence || 'Medium').toLowerCase();
 
   let config = {
-    bg: 'bg-emerald-50 text-emerald-800 border-emerald-200',
+    bg: 'bg-emerald-50 text-emerald-800 border-emerald-200 dark:bg-emerald-500/15 dark:text-emerald-300 dark:border-emerald-500/30',
     dot: 'bg-emerald-500',
     icon: HiCheckCircle,
     label: 'High confidence',
@@ -14,16 +14,16 @@ export const ConfidenceBadge = ({ confidence = 'Medium', score = null }) => {
 
   if (confNormalized.includes('med')) {
     config = {
-      bg: 'bg-amber-50 text-amber-800 border-amber-200',
-      dot: 'bg-amber-500',
+      bg: 'bg-accent-50 text-accent-800 border-accent-200 dark:bg-accent-500/15 dark:text-accent-200 dark:border-accent-500/30',
+      dot: 'bg-accent-500',
       icon: HiInformationCircle,
       label: 'Medium confidence',
       desc: 'Moderate source match - verify cited sections',
     };
   } else if (confNormalized.includes('low') || confNormalized.includes('un')) {
     config = {
-      bg: 'bg-rose-50 text-rose-800 border-rose-200',
-      dot: 'bg-rose-500',
+      bg: 'bg-clay-50 text-clay-800 border-clay-200 dark:bg-clay-500/15 dark:text-clay-200 dark:border-clay-500/30',
+      dot: 'bg-clay-500',
       icon: HiExclamationTriangle,
       label: 'Low confidence',
       desc: 'Limited direct source match - legal consultation advised',
@@ -35,7 +35,7 @@ export const ConfidenceBadge = ({ confidence = 'Medium', score = null }) => {
   return (
     <div
       title={config.desc}
-      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${config.bg} shadow-2xs transition-transform hover:scale-105`}
+      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${config.bg} transition-transform hover:scale-105`}
     >
       <IconComponent className="w-3.5 h-3.5 shrink-0" />
       <span>{config.label}</span>

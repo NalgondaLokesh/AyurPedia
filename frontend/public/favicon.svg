@@ -1,8 +1,10 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
-  <circle cx="50" cy="50" r="48" fill="#1a4d2e" />
-  <path d="M50 20 C35 35 25 50 25 65 C25 80 40 85 50 85 C60 85 75 80 75 65 C75 50 65 35 50 20 Z" fill="#52b788" opacity="0.9"/>
-  <path d="M50 30 C50 50 50 70 50 80" stroke="#faedcd" stroke-width="4" stroke-linecap="round"/>
-  <path d="M50 48 C42 42 35 48 35 48" stroke="#faedcd" stroke-width="3" stroke-linecap="round"/>
-  <path d="M50 58 C58 52 65 58 65 58" stroke="#faedcd" stroke-width="3" stroke-linecap="round"/>
-  <circle cx="50" cy="22" r="4" fill="#dda15e" />
+  <circle cx="50" cy="50" r="48" fill="#1f4133" />
+  <circle cx="50" cy="50" r="40" fill="none" stroke="#e0a93b" stroke-width="1.5" stroke-opacity="0.4" />
+  <path d="M50 78 C50 58 50 44 50 40" stroke="#e0a93b" stroke-width="4" stroke-linecap="round" />
+  <path d="M50 40 C38 36 30 28 28 18 C40 19 47 27 50 40 Z" fill="#e0a93b" fill-opacity="0.95" />
+  <path d="M50 40 C62 36 70 28 72 18 C60 19 53 27 50 40 Z" fill="#cf8f22" fill-opacity="0.95" />
+  <path d="M50 56 C42 53 36 47 35 40 C44 41 49 47 50 56 Z" fill="#74c69d" fill-opacity="0.85" />
+  <path d="M50 56 C58 53 64 47 65 40 C56 41 51 47 50 56 Z" fill="#74c69d" fill-opacity="0.85" />
+  <circle cx="50" cy="34" r="3.5" fill="#f2d489" />
 </svg>

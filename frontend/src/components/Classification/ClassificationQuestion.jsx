@@ -1,5 +1,6 @@
 import React from 'react';
-import { HiArrowLeft, HiArrowRight, HiSparkles } from 'react-icons/hi2';
+import { HiArrowLeft, HiArrowRight, HiSparkles, HiCheck, HiBookOpen, HiBeaker, HiHeart, HiCube } from 'react-icons/hi2';
+import { Leaf } from '../Common/Botanical';
 
 export const ClassificationQuestion = ({
   step,
@@ -12,7 +13,7 @@ export const ClassificationQuestion = ({
   isLoading,
 }) => {
   const POPULAR_HERBS = [
-    'Ashwagandha', 'Turmeric (Haridra)', 'Triphala', 'Brahmi', 'Neem', 
+    'Ashwagandha', 'Turmeric (Haridra)', 'Triphala', 'Brahmi', 'Neem',
     'Tulsi', 'Guduchi', 'Shatavari', 'Amla', 'Guggulu', 'Shilajit', 'Licorice (Yashtimadhu)'
   ];
 
@@ -29,19 +30,25 @@ export const ClassificationQuestion = ({
 
   const selectedHerbList = formData.herbs ? formData.herbs.split(',').map((h) => h.trim()) : [];
 
+  const optionBase = 'p-4 rounded-2xl border text-left transition-all cursor-pointer';
+  const optionActive = 'border-primary-600 bg-primary-50 dark:bg-primary-900/40 ring-1 ring-accent-400/40 dark:border-primary-500';
+  const optionIdle = 'border-stone-200 dark:border-primary-900/50 bg-white dark:bg-primary-950/30 hover:border-accent-300 dark:hover:border-primary-700';
+
   return (
-    <div className="space-y-6 animate-in fade-in duration-200">
+    <div className="space-y-6 fade-in">
       {/* Progress Bar */}
       <div>
-        <div className="flex items-center justify-between text-xs text-stone-500 font-bold mb-1.5">
+        <div className="flex items-center justify-between text-xs text-stone-500 dark:text-stone-400 font-bold mb-1.5">
           <span>Step {step} of {totalSteps}</span>
-          <span className="text-primary-700 font-semibold">{Math.round((step / totalSteps) * 100)}% Complete</span>
+          <span className="text-primary-700 dark:text-accent-300 font-semibold">{Math.round((step / totalSteps) * 100)}% Complete</span>
         </div>
-        <div className="w-full bg-stone-200 h-2 rounded-full overflow-hidden">
+        <div className="w-full bg-stone-200 dark:bg-primary-900/50 h-2 rounded-full overflow-hidden">
           <div
-            className="bg-gradient-to-r from-primary-600 to-herbal-leaf h-full transition-all duration-300 rounded-full"
+            className="bg-primary-700 h-full transition-all duration-500 rounded-full relative"
             style={{ width: `${(step / totalSteps) * 100}%` }}
-          />
+          >
+            <span className="absolute right-0 top-0 h-full w-1 bg-accent-400/70" />
+          </div>
         </div>
       </div>
 
@@ -49,11 +56,11 @@ export const ClassificationQuestion = ({
       {step === 1 && (
         <div className="space-y-4">
           <div>
-            <h3 className="text-base font-bold text-stone-900 mb-1">
-              1. Is this formulation from authoritative Classical Ayurvedic texts?
+            <h3 className="text-lg font-serif font-semibold text-stone-900 dark:text-stone-100 mb-1">
+              Is this formulation from authoritative Classical Ayurvedic texts?
             </h3>
-            <p className="text-xs text-stone-500">
-              Reference texts listed in Schedule 1 of the Drugs & Cosmetics Act (e.g. Charaka Samhita, Sushruta Samhita, Ayurvedic Formulary of India).
+            <p className="text-xs text-stone-500 dark:text-stone-400">
+              Reference texts listed in Schedule 1 of the Drugs &amp; Cosmetics Act (e.g. Charaka Samhita, Sushruta Samhita, Ayurvedic Formulary of India).
             </p>
           </div>
 
@@ -61,35 +68,27 @@ export const ClassificationQuestion = ({
             <button
               type="button"
               onClick={() => updateFormData('isClassical', 'yes')}
-              className={`p-4 rounded-2xl border text-left transition-all cursor-pointer ${
-                formData.isClassical === 'yes'
-                  ? 'border-primary-600 bg-primary-50/80 ring-2 ring-primary-500/20'
-                  : 'border-stone-200 bg-white hover:border-stone-300'
-              }`}
+              className={`${optionBase} ${formData.isClassical === 'yes' ? optionActive : optionIdle}`}
             >
               <div className="flex items-center justify-between mb-1.5">
-                <span className="font-bold text-sm text-stone-900">Yes (Classical Text)</span>
-                <span className="text-xl">📜</span>
+                <span className="font-bold text-sm text-stone-900 dark:text-stone-100">Yes — Classical Text</span>
+                <HiBookOpen className="w-5 h-5 text-accent-600 dark:text-accent-400" />
               </div>
-              <p className="text-xs text-stone-600">
-                Formulation strictly adheres to traditional textual recipes (e.g., Chyawanprash, Triphala Churna). Protected against direct patents under Section 3(p).
+              <p className="text-xs text-stone-600 dark:text-stone-400">
+                Adheres to traditional textual recipes (e.g., Chyawanprash, Triphala Churna). Protected against direct patents under Section 3(p).
               </p>
             </button>
 
             <button
               type="button"
               onClick={() => updateFormData('isClassical', 'no')}
-              className={`p-4 rounded-2xl border text-left transition-all cursor-pointer ${
-                formData.isClassical === 'no'
-                  ? 'border-primary-600 bg-primary-50/80 ring-2 ring-primary-500/20'
-                  : 'border-stone-200 bg-white hover:border-stone-300'
-              }`}
+              className={`${optionBase} ${formData.isClassical === 'no' ? optionActive : optionIdle}`}
             >
               <div className="flex items-center justify-between mb-1.5">
-                <span className="font-bold text-sm text-stone-900">No (New / Proprietary Recipe)</span>
-                <span className="text-xl">🧪</span>
+                <span className="font-bold text-sm text-stone-900 dark:text-stone-100">No — New / Proprietary</span>
+                <HiBeaker className="w-5 h-5 text-accent-600 dark:text-accent-400" />
               </div>
-              <p className="text-xs text-stone-600">
+              <p className="text-xs text-stone-600 dark:text-stone-400">
                 Novel combination, modern extraction, dietary food, or synergistic proprietary formulation with potential IP / patent claims.
               </p>
             </button>
@@ -101,16 +100,16 @@ export const ClassificationQuestion = ({
       {step === 2 && (
         <div className="space-y-4">
           <div>
-            <h3 className="text-base font-bold text-stone-900 mb-1">
-              2. What herbs and ingredients are included?
+            <h3 className="text-lg font-serif font-semibold text-stone-900 dark:text-stone-100 mb-1">
+              What herbs and ingredients are included?
             </h3>
-            <p className="text-xs text-stone-500">
+            <p className="text-xs text-stone-500 dark:text-stone-400">
               Select common Ayurvedic botanicals or type your full formulation ingredient list below.
             </p>
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-stone-700 mb-2 uppercase tracking-wider">
+            <label className="block text-[11px] font-bold text-stone-700 dark:text-stone-300 mb-2 uppercase tracking-[0.12em]">
               Quick Botanical Chips
             </label>
             <div className="flex flex-wrap gap-1.5">
@@ -121,13 +120,13 @@ export const ClassificationQuestion = ({
                     key={herb}
                     type="button"
                     onClick={() => toggleHerb(herb)}
-                    className={`px-3 py-1.5 text-xs rounded-xl font-medium transition-all cursor-pointer ${
+                    className={`inline-flex items-center gap-1 px-3 py-1.5 text-xs rounded-xl font-medium transition-all cursor-pointer ${
                       isSelected
-                        ? 'bg-primary-700 text-white shadow-xs'
-                        : 'bg-white hover:bg-stone-100 text-stone-700 border border-stone-200'
+                        ? 'bg-primary-800 text-white shadow-sm'
+                        : 'bg-white dark:bg-primary-950/40 hover:bg-stone-100 dark:hover:bg-primary-900/40 text-stone-700 dark:text-stone-300 border border-stone-200 dark:border-primary-900/50'
                     }`}
                   >
-                    {isSelected ? '✓ ' : '+ '}
+                    {isSelected && <HiCheck className="w-3.5 h-3.5 text-accent-300" />}
                     {herb}
                   </button>
                 );
@@ -136,15 +135,15 @@ export const ClassificationQuestion = ({
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-stone-700 mb-1">
-              Specified Ingredients & Proportions
+            <label className="block text-xs font-bold text-stone-700 dark:text-stone-300 mb-1">
+              Specified Ingredients &amp; Proportions
             </label>
             <input
               type="text"
               value={formData.herbs}
               onChange={(e) => updateFormData('herbs', e.target.value)}
               placeholder="e.g. Ashwagandha extract 500mg, Piperine 5mg, Curcumin 250mg"
-              className="w-full px-3.5 py-2.5 text-xs bg-white border border-stone-200 rounded-xl focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none"
+              className="w-full px-3.5 py-2.5 text-xs bg-white dark:bg-primary-950/50 border border-stone-200 dark:border-primary-900/50 rounded-xl focus:ring-2 focus:ring-accent-400/25 focus:border-primary-500 outline-none text-stone-800 dark:text-stone-100"
             />
           </div>
         </div>
@@ -154,62 +153,38 @@ export const ClassificationQuestion = ({
       {step === 3 && (
         <div className="space-y-4">
           <div>
-            <h3 className="text-base font-bold text-stone-900 mb-1">
-              3. What is the primary intended use & delivery route?
+            <h3 className="text-lg font-serif font-semibold text-stone-900 dark:text-stone-100 mb-1">
+              What is the primary intended use &amp; delivery route?
             </h3>
-            <p className="text-xs text-stone-500">
-              Determines applicable regulatory statutes (FSSAI Food safety vs AYUSH Licensing vs Drugs & Cosmetics).
+            <p className="text-xs text-stone-500 dark:text-stone-400">
+              Determines applicable regulatory statutes (FSSAI Food safety vs AYUSH Licensing vs Drugs &amp; Cosmetics).
             </p>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
             {[
-              {
-                id: 'dietary',
-                title: 'Dietary / Food Supplement',
-                desc: 'Food products containing Schedule A herbs for general wellness (Ayurveda-Aahar)',
-                icon: '🥣',
-              },
-              {
-                id: 'medicinal',
-                title: 'Therapeutic / Medicinal Treatment',
-                desc: 'Intended to treat, mitigate, or cure specific pathological disease conditions',
-                icon: '💊',
-              },
-              {
-                id: 'cosmetic',
-                title: 'Cosmetic / Topical Application',
-                desc: 'Skin, hair, or topical wellness applications without systemic therapeutic claims',
-                icon: '🌿',
-              },
-              {
-                id: 'phytopharmaceutical',
-                title: 'Standardized Phytopharmaceutical',
-                desc: 'Purified botanical fraction with standardized active markers & clinical trial endpoints',
-                icon: '🔬',
-              },
-            ].map((option) => (
+              { id: 'dietary', title: 'Dietary / Food Supplement', desc: 'Food products containing Schedule A herbs for general wellness (Ayurveda-Aahar)', Icon: HiCube },
+              { id: 'medicinal', title: 'Therapeutic / Medicinal', desc: 'Intended to treat, mitigate, or cure specific pathological disease conditions', Icon: HiHeart },
+              { id: 'cosmetic', title: 'Cosmetic / Topical', desc: 'Skin, hair, or topical wellness applications without systemic therapeutic claims', Icon: Leaf },
+              { id: 'phytopharmaceutical', title: 'Standardized Phytopharmaceutical', desc: 'Purified botanical fraction with standardized active markers & clinical endpoints', Icon: HiBeaker },
+            ].map(({ id, title, desc, Icon }) => (
               <button
-                key={option.id}
+                key={id}
                 type="button"
-                onClick={() => updateFormData('intendedUse', option.id)}
-                className={`p-4 rounded-2xl border text-left transition-all cursor-pointer ${
-                  formData.intendedUse === option.id
-                    ? 'border-primary-600 bg-primary-50/80 ring-2 ring-primary-500/20'
-                    : 'border-stone-200 bg-white hover:border-stone-300'
-                }`}
+                onClick={() => updateFormData('intendedUse', id)}
+                className={`${optionBase} ${formData.intendedUse === id ? optionActive : optionIdle}`}
               >
                 <div className="flex items-center justify-between mb-1">
-                  <span className="font-bold text-sm text-stone-900">{option.title}</span>
-                  <span className="text-lg">{option.icon}</span>
+                  <span className="font-bold text-sm text-stone-900 dark:text-stone-100">{title}</span>
+                  <Icon className="w-5 h-5 text-accent-600 dark:text-accent-400 shrink-0" />
                 </div>
-                <p className="text-xs text-stone-600">{option.desc}</p>
+                <p className="text-xs text-stone-600 dark:text-stone-400">{desc}</p>
               </button>
             ))}
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-stone-700 mb-1">
+            <label className="block text-xs font-bold text-stone-700 dark:text-stone-300 mb-1">
               Optional Additional Formulation Description / Claims
             </label>
             <textarea
@@ -217,20 +192,20 @@ export const ClassificationQuestion = ({
               value={formData.description}
               onChange={(e) => updateFormData('description', e.target.value)}
               placeholder="e.g. A synergistic aqueous extraction of Ashwagandha and Brahmi in tablet form intended to reduce stress and improve cognitive memory."
-              className="w-full px-3.5 py-2 text-xs bg-white border border-stone-200 rounded-xl focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none resize-none"
+              className="w-full px-3.5 py-2 text-xs bg-white dark:bg-primary-950/50 border border-stone-200 dark:border-primary-900/50 rounded-xl focus:ring-2 focus:ring-accent-400/25 focus:border-primary-500 outline-none resize-none text-stone-800 dark:text-stone-100"
             />
           </div>
         </div>
       )}
 
       {/* Navigation Buttons */}
-      <div className="flex items-center justify-between pt-4 border-t border-stone-200">
+      <div className="flex items-center justify-between pt-4 border-t border-stone-200 dark:border-primary-900/50">
         {step > 1 ? (
           <button
             type="button"
             onClick={onPrev}
             disabled={isLoading}
-            className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-stone-600 hover:text-stone-900 hover:bg-stone-100 rounded-xl transition-all cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-stone-600 dark:text-stone-300 hover:text-stone-900 dark:hover:text-stone-100 hover:bg-stone-100 dark:hover:bg-primary-900/40 rounded-xl transition-all cursor-pointer"
           >
             <HiArrowLeft className="w-4 h-4" />
             <span>Previous</span>
@@ -243,7 +218,7 @@ export const ClassificationQuestion = ({
           <button
             type="button"
             onClick={onNext}
-            className="inline-flex items-center gap-1.5 px-5 py-2 text-xs font-bold text-white bg-primary-700 hover:bg-primary-800 active:scale-95 rounded-xl shadow-sm transition-all cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-5 py-2 text-xs font-bold text-white btn-premium rounded-xl transition-all cursor-pointer"
           >
             <span>Next Step</span>
             <HiArrowRight className="w-4 h-4" />
@@ -253,9 +228,9 @@ export const ClassificationQuestion = ({
             type="button"
             onClick={onClassify}
             disabled={isLoading}
-            className="inline-flex items-center gap-2 px-6 py-2.5 text-xs font-bold text-white bg-gradient-to-r from-primary-800 to-emerald-700 hover:opacity-95 active:scale-95 rounded-xl shadow-md transition-all cursor-pointer"
+            className="inline-flex items-center gap-2 px-6 py-2.5 text-xs font-bold text-white btn-premium rounded-xl transition-all cursor-pointer disabled:opacity-60"
           >
-            <HiSparkles className="w-4 h-4 text-accent-400" />
+            <HiSparkles className="w-4 h-4 text-accent-300" />
             <span>{isLoading ? 'Classifying with AI...' : 'Run Regulatory Classification'}</span>
           </button>
         )}

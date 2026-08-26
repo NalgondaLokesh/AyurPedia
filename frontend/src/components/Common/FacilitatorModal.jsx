@@ -58,43 +58,44 @@ export const FacilitatorModal = () => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-900/60 backdrop-blur-xs animate-in fade-in duration-200">
-      <div className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl border border-stone-100 overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-stone-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="relative w-full max-w-lg max-h-[92dvh] flex flex-col bg-[#fffdf8] rounded-3xl shadow-float border border-stone-200 overflow-hidden scale-in">
         {/* Modal Header */}
-        <div className="flex items-center justify-between p-5 bg-gradient-to-r from-primary-800 via-primary-700 to-emerald-800 text-white">
-          <div className="flex items-center gap-2.5">
-            <div className="p-2 bg-white/15 rounded-xl backdrop-blur-xs">
-              <HiUserGroup className="w-5 h-5 text-accent-100" />
+        <div className="flex items-center justify-between p-5 bg-primary-900 text-white relative overflow-hidden shrink-0">
+          <div className="absolute -top-10 -right-8 w-40 h-40 rounded-full bg-accent-400/10 blur-2xl pointer-events-none" />
+          <div className="relative flex items-center gap-2.5">
+            <div className="p-2 bg-white/10 rounded-xl ring-1 ring-accent-400/20">
+              <HiUserGroup className="w-5 h-5 text-accent-300" />
             </div>
             <div>
-              <h3 className="text-base font-bold">AyurPedia Human Facilitator</h3>
-              <p className="text-xs text-emerald-100">Connect with an Ayurvedic IPR & Regulatory Specialist</p>
+              <h3 className="text-base font-serif font-semibold">Human Facilitator</h3>
+              <p className="text-xs text-stone-300">Connect with an Ayurvedic IPR &amp; Regulatory Specialist</p>
             </div>
           </div>
           <button
             type="button"
             onClick={handleClose}
-            className="p-1.5 text-white/80 hover:text-white hover:bg-white/10 rounded-full transition-colors cursor-pointer"
+            className="relative p-1.5 text-white/80 hover:text-white hover:bg-white/10 rounded-full transition-colors cursor-pointer"
           >
             <HiXMark className="w-5 h-5" />
           </button>
         </div>
 
         {/* Modal Body */}
-        <div className="p-6">
+        <div className="p-5 sm:p-6 overflow-y-auto">
           {isSubmitted ? (
             <div className="text-center py-6">
               <div className="w-16 h-16 mx-auto mb-4 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center">
                 <HiCheckCircle className="w-10 h-10" />
               </div>
-              <h4 className="text-lg font-bold text-stone-900 mb-1">Escalation Request Received!</h4>
+              <h4 className="text-lg font-serif font-semibold text-stone-900 mb-1">Escalation Request Received</h4>
               <p className="text-xs text-stone-600 max-w-sm mx-auto mb-6">
                 A verified patent facilitator specializing in traditional Indian medicine and {jurisdiction} frameworks will review your query and contact you within 24 hours.
               </p>
               <button
                 type="button"
                 onClick={handleClose}
-                className="px-6 py-2.5 bg-primary-700 hover:bg-primary-800 text-white text-xs font-bold rounded-xl shadow-sm transition-all"
+                className="px-6 py-2.5 btn-premium text-white text-xs font-bold rounded-xl transition-all"
               >
                 Return to AyurPedia
               </button>
@@ -116,7 +117,7 @@ export const FacilitatorModal = () => {
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   placeholder="Dr. / Vaidya / Researcher Name"
-                  className="w-full px-3.5 py-2 text-xs bg-white border border-stone-200 rounded-xl focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none"
+                  className="w-full px-3.5 py-2 text-xs bg-white border border-stone-200 rounded-xl focus:ring-2 focus:ring-accent-400/25 focus:border-primary-500 outline-none"
                 />
               </div>
 
@@ -129,7 +130,7 @@ export const FacilitatorModal = () => {
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                     placeholder="name@organization.com"
-                    className="w-full px-3.5 py-2 text-xs bg-white border border-stone-200 rounded-xl focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none"
+                    className="w-full px-3.5 py-2 text-xs bg-white border border-stone-200 rounded-xl focus:ring-2 focus:ring-accent-400/25 focus:border-primary-500 outline-none"
                   />
                 </div>
                 <div>
@@ -139,7 +140,7 @@ export const FacilitatorModal = () => {
                     value={formData.organization}
                     onChange={(e) => setFormData({ ...formData, organization: e.target.value })}
                     placeholder="Ayurvedic Pharmacy / Univ"
-                    className="w-full px-3.5 py-2 text-xs bg-white border border-stone-200 rounded-xl focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none"
+                    className="w-full px-3.5 py-2 text-xs bg-white border border-stone-200 rounded-xl focus:ring-2 focus:ring-accent-400/25 focus:border-primary-500 outline-none"
                   />
                 </div>
               </div>
@@ -149,7 +150,7 @@ export const FacilitatorModal = () => {
                 <select
                   value={formData.inquiryType}
                   onChange={(e) => setFormData({ ...formData, inquiryType: e.target.value })}
-                  className="w-full px-3.5 py-2 text-xs bg-white border border-stone-200 rounded-xl focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none"
+                  className="w-full px-3.5 py-2 text-xs bg-white border border-stone-200 rounded-xl focus:ring-2 focus:ring-accent-400/25 focus:border-primary-500 outline-none"
                 >
                   <option value="Patentability / Section 3(p)">Patentability / Section 3(p) Traditional Knowledge</option>
                   <option value="Ayurveda Aahar Regulatory Approval">FSSAI Ayurveda Aahar Formulation Approval</option>
@@ -166,7 +167,7 @@ export const FacilitatorModal = () => {
                   value={formData.notes}
                   onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                   placeholder="Provide context, ingredients, or specific regulatory roadblocks..."
-                  className="w-full px-3.5 py-2 text-xs bg-white border border-stone-200 rounded-xl focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none resize-none"
+                  className="w-full px-3.5 py-2 text-xs bg-white border border-stone-200 rounded-xl focus:ring-2 focus:ring-accent-400/25 focus:border-primary-500 outline-none resize-none"
                 />
               </div>
 
@@ -180,7 +181,7 @@ export const FacilitatorModal = () => {
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 text-xs font-bold text-white bg-primary-700 hover:bg-primary-800 active:scale-95 rounded-xl shadow-md transition-all cursor-pointer"
+                  className="px-5 py-2 text-xs font-bold text-white btn-premium rounded-xl transition-all cursor-pointer"
                 >
                   Submit Escalation
                 </button>

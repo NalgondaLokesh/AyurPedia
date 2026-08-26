@@ -1,26 +1,14 @@
-/* App custom styling animations */
-
-@keyframes pulseGlow {
-  0%, 100% {
-    box-shadow: 0 0 15px rgba(45, 106, 79, 0.2);
-  }
-  50% {
-    box-shadow: 0 0 25px rgba(82, 183, 136, 0.4);
-  }
-}
-
-.pulse-glow {
-  animation: pulseGlow 3s infinite ease-in-out;
-}
+/* Legacy animation helpers now live in index.css (heritage design system).
+   This file is intentionally minimal to avoid overriding the design tokens. */
 
 .fade-in {
-  animation: fadeIn 0.3s ease-in-out forwards;
+  animation: fadeIn 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
 
 @keyframes fadeIn {
   from {
     opacity: 0;
-    transform: translateY(6px);
+    transform: translateY(8px);
   }
   to {
     opacity: 1;

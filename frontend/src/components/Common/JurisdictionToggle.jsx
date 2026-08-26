@@ -13,7 +13,7 @@ export const JurisdictionToggle = () => {
   ];
 
   return (
-    <div className="inline-flex items-center p-1 bg-stone-100/90 dark:bg-stone-800 rounded-xl border border-stone-200/80 dark:border-stone-700 shadow-inner">
+    <div className="inline-flex items-center p-1 bg-stone-100/90 dark:bg-primary-950/50 rounded-xl border border-stone-200/80 dark:border-primary-900/50">
       {options.map((opt) => {
         const isActive = jurisdiction === opt.id;
         return (
@@ -25,8 +25,8 @@ export const JurisdictionToggle = () => {
             title={opt.desc}
             className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-all duration-200 ${
               isActive
-                ? 'bg-primary-600 text-white shadow-sm scale-[1.02]'
-                : 'text-stone-600 hover:text-stone-900 hover:bg-stone-200/60 dark:text-stone-300'
+                ? 'bg-primary-800 text-white shadow-sm'
+                : 'text-stone-600 dark:text-stone-300 hover:text-stone-900 dark:hover:text-white hover:bg-white/70 dark:hover:bg-primary-900/40'
             } ${isLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
           >
             <span className="text-sm">{opt.flag}</span>

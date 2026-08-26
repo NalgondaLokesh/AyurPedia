@@ -103,7 +103,7 @@ export const MessageInput = () => {
     <div className="relative">
       <form
         onSubmit={handleSubmit}
-        className="relative bg-white/95 dark:bg-stone-800 rounded-2xl border border-stone-300/80 dark:border-stone-700 shadow-sm focus-within:border-primary-500 focus-within:ring-2 focus-within:ring-primary-500/20 transition-all p-2"
+        className="relative bg-white dark:bg-primary-950/50 rounded-2xl border border-stone-300/80 dark:border-primary-900/50 shadow-subtle focus-within:border-primary-600 focus-within:ring-2 focus-within:ring-accent-400/25 transition-all duration-300 p-2 hover:shadow-card"
       >
         <div className="flex items-end gap-2">
           {/* Text input */}
@@ -119,7 +119,7 @@ export const MessageInput = () => {
                 ? 'आयुर्वेदिक कानून या योग के बारे में पूछें... (Enter दबाएं)'
                 : 'Ask an Ayurvedic IPR, TKDL or regulatory question... (Press Enter to send)'
             }
-            className="w-full max-h-36 py-2 px-2.5 text-xs sm:text-sm text-stone-800 dark:text-stone-100 placeholder-stone-400 bg-transparent border-none outline-none resize-none leading-relaxed"
+            className="w-full max-h-36 py-2 px-2.5 text-xs sm:text-sm text-stone-800 dark:text-stone-100 placeholder-stone-400 dark:placeholder-stone-500 bg-transparent border-none outline-none resize-none leading-relaxed transition-all duration-200"
           />
 
           {/* Action buttons */}
@@ -130,10 +130,10 @@ export const MessageInput = () => {
               onClick={handleVoiceInput}
               disabled={isLoading}
               title={isListening ? 'Listening...' : 'Voice input (Speech to Text)'}
-              className={`p-2 rounded-xl transition-all cursor-pointer ${
+              className={`p-2 rounded-xl transition-all duration-200 cursor-pointer focus-premium ${
                 isListening
-                  ? 'bg-rose-500 text-white animate-pulse'
-                  : 'text-stone-500 hover:text-stone-800 hover:bg-stone-100 dark:text-stone-400 dark:hover:bg-stone-700'
+                  ? 'bg-clay-500 text-white animate-pulse shadow-lg shadow-clay-500/30'
+                  : 'text-stone-500 hover:text-primary-800 dark:text-stone-400 dark:hover:text-accent-300 hover:bg-stone-100 dark:hover:bg-primary-900/40 hover:shadow-sm'
               }`}
             >
               <HiMicrophone className="w-5 h-5" />
@@ -144,14 +144,14 @@ export const MessageInput = () => {
               type="submit"
               disabled={isLoading || !inputText.trim()}
               title="Send message"
-              className={`p-2.5 rounded-xl transition-all font-semibold flex items-center justify-center ${
+              className={`p-2.5 rounded-xl transition-all duration-200 font-semibold flex items-center justify-center ${
                 !inputText.trim() || isLoading
-                  ? 'bg-stone-200 text-stone-400 cursor-not-allowed dark:bg-stone-700 dark:text-stone-500'
-                  : 'bg-primary-700 hover:bg-primary-800 text-white active:scale-95 shadow-sm cursor-pointer'
+                  ? 'bg-stone-200 text-stone-400 cursor-not-allowed dark:bg-primary-900/50 dark:text-stone-500'
+                  : 'btn-premium text-white active:scale-95 cursor-pointer'
               }`}
             >
               {isLoading ? (
-                <HiArrowPath className="w-5 h-5 animate-spin" />
+                <HiArrowPath className="w-5 h-5 animate-spin-slow" />
               ) : (
                 <HiPaperAirplane className="w-5 h-5" />
               )}
@@ -159,9 +159,13 @@ export const MessageInput = () => {
           </div>
         </div>
       </form>
-      <div className="flex items-center justify-between px-2 pt-1.5 text-[10px] text-stone-400">
-        <span>Shift + Enter for new line</span>
-        <span>Backed by verified statutory legal sources</span>
+      <div className="flex items-center justify-between px-2 pt-1.5 text-[10px] text-stone-400 dark:text-stone-500">
+        <span className="hidden sm:inline">Shift + Enter for new line</span>
+        <span className="flex items-center gap-1 mx-auto sm:mx-0">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+          <span className="sm:hidden">Verified legal sources</span>
+          <span className="hidden sm:inline">Backed by verified statutory legal sources</span>
+        </span>
       </div>
     </div>
   );

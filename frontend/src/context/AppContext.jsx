@@ -32,7 +32,20 @@ export const AppProvider = ({ children }) => {
 
   useEffect(() => {
     localStorage.setItem('ayurpedia_theme', theme);
+    // Apply theme to document
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
   }, [theme]);
+
+  // Initialize theme on mount
+  useEffect(() => {
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark');
+    }
+  }, []);
 
   const openFacilitatorModal = (context = null) => {
     setFacilitatorContext(context);
