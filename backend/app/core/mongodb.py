@@ -63,15 +63,27 @@ class MongoDBManager:
         if not self.is_connected or self.db is None:
             return
         try:
+            # Users index
+            await self.db.users.create_index([("email", pymongo.ASCENDING)], unique=True)
+            await self.db.users.create_index([("created_at", pymongo.DESCENDING)])
+            
             # Conversations index
             await self.db.conversations.create_index([("conversation_id", pymongo.ASCENDING)], unique=True)
+            await self.db.conversations.create_index([("user_id", pymongo.ASCENDING)])
             await self.db.conversations.create_index([("updated_at", pymongo.DESCENDING)])
             
             # Classifications index
             await self.db.classifications.create_index([("created_at", pymongo.DESCENDING)])
+            await self.db.classifications.create_index([("user_id", pymongo.ASCENDING)])
             
             # Facilitator requests index
             await self.db.facilitator_requests.create_index([("created_at", pymongo.DESCENDING)])
+            await self.db.facilitator_requests.create_index([("user_id", pymongo.ASCENDING)])
+            
+            # Audit logs index
+            await self.db.audit_logs.create_index([("user_id", pymongo.ASCENDING)])
+            await self.db.audit_logs.create_index([("timestamp", pymongo.DESCENDING)])
+            await self.db.audit_logs.create_index([("action", pymongo.ASCENDING)])
             
             logger.info("MongoDB indexes verified successfully.")
         except Exception as e:

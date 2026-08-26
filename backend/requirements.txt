@@ -1,12 +1,12 @@
 llama-parse
 cohere
 qdrant-client
-pydantic
+pydantic>=2.7.4
 python-dotenv
 tqdm
 tenacity
-fastapi
-uvicorn[standard]
+fastapi>=0.115.0
+uvicorn[standard]>=0.24.0
 langchain
 langchain-core
 langchain-community
@@ -17,3 +17,11 @@ httpx
 motor
 pymongo
 dnspython
+bcrypt>=4.0.0
+python-jose[cryptography]
+python-multipart
+redis
+sentry-sdk
+slowapi
+email-validator
+pydantic-settings>=2.10.1

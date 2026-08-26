@@ -14,14 +14,15 @@ from app.core.config import get_config
 from app.core.database import QdrantDB
 from app.core.llm import get_llm_client
 from app.core.mongodb import get_mongodb
+from app.core.redis import get_redis
+from app.core.rate_limit import get_rate_limiter
+from app.core.sentry import init_sentry
 from app.rag.retriever import Retriever
 from app.rag.chains import RAGChain
 from app.graph.classification import ClassificationNode
 from app.api.chat import set_chat_service
 from app.api.classify import set_classification_service
-from app.api import chat_router, classify_router, health_router
-from app.api.conversations import router as conversations_router
-from app.api.facilitator import router as facilitator_router
+from app.api import chat_router, classify_router, health_router, conversations_router, facilitator_router, auth_router, conversations_auth_router
 from app.services.chat_service import ChatService
 from app.services.classification_service import ClassificationService
 
@@ -60,15 +61,26 @@ async def lifespan(app: FastAPI):
     try:
         # Load configuration
         config = get_config()
-        print("✓ Configuration loaded")
+        print("[OK] Configuration loaded")
+        
+        # Initialize Sentry
+        init_sentry()
 
         # Initialize MongoDB
         mongo = get_mongodb()
         mongo_ok = await mongo.connect()
         if mongo_ok:
-            print(f"✓ MongoDB Atlas connected ({config.mongodb_db_name})")
+            print(f"[OK] MongoDB Atlas connected ({config.mongodb_db_name})")
         else:
-            print("✓ MongoDB (in-memory mode ready)")
+            print("[OK] MongoDB (in-memory mode ready)")
+        
+        # Initialize Redis
+        redis_client = get_redis()
+        redis_ok = await redis_client.connect()
+        if redis_ok:
+            print("[OK] Redis connected (caching enabled)")
+        else:
+            print("[OK] Redis (running without caching)")
         
         # Initialize Qdrant database
         qdrant_db = QdrantDB(
@@ -84,24 +96,24 @@ async def lifespan(app: FastAPI):
         india_count = india_info["points_count"] if india_info else 0
         international_count = international_info["points_count"] if international_info else 0
         
-        print(f"✓ Qdrant connected: {config.india_collection} ({india_count} vectors), "
+        print(f"[OK] Qdrant connected: {config.india_collection} ({india_count} vectors), "
               f"{config.international_collection} ({international_count} vectors)")
         
         # Initialize LLM client
         llm_client = get_llm_client()
-        print(f"✓ Gemini LLM initialized ({config.gemini_model})")
+        print(f"[OK] Gemini LLM initialized ({config.gemini_model})")
         
         # Initialize retriever
         retriever = Retriever(qdrant_db, top_k=config.top_k_results)
-        print(f"✓ Retriever initialized (top_k={config.top_k_results})")
+        print(f"[OK] Retriever initialized (top_k={config.top_k_results})")
         
         # Initialize RAG chain
         rag_chain = RAGChain(llm_client.get_llm_with_fallback(), retriever)
-        print("✓ RAG chain created")
+        print("[OK] RAG chain created")
         
         # Initialize classification node
         classification_node = ClassificationNode(llm_client.get_llm_with_fallback())
-        print("✓ Classification node created")
+        print("[OK] Classification node created")
         
         # Initialize services
         chat_service = ChatService(rag_chain)
@@ -118,13 +130,16 @@ async def lifespan(app: FastAPI):
         print("  GET  /api/conversations/{id}   - Fetch session messages")
         print("  POST /api/facilitator/request  - Submit human facilitator ticket")
         print("  GET  /api/health               - Service health check")
+        print("  POST /api/auth/register        - User registration")
+        print("  POST /api/auth/login           - User login")
+        print("  GET  /api/auth/me              - Get current user")
         
-        print(f"\n✓ FastAPI server starting at http://localhost:8000")
+        print(f"\n[OK] FastAPI server starting at http://localhost:8000")
         print("=" * 60 + "\n")
         
     except Exception as e:
         logger.error(f"Failed to initialize services: {e}")
-        print(f"✗ Failed to initialize services: {e}")
+        print(f"[ERROR] Failed to initialize services: {e}")
         raise
     
     yield
@@ -132,6 +147,7 @@ async def lifespan(app: FastAPI):
     # Shutdown
     logger.info("Shutting down AyurPedia Phase 2 Backend...")
     await get_mongodb().close()
+    await get_redis().close()
     print("\nShutting down AyurPedia Phase 2 Backend...")
 
 
@@ -143,13 +159,19 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# Add CORS middleware
+# Add rate limiting middleware
+rate_limiter = get_rate_limiter()
+app.middleware("http")(rate_limiter)
+
+# Add CORS middleware (will be updated after config loads)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Configure appropriately for production
+    allow_origins=["*"],  # Will be updated in lifespan
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["X-RateLimit-Limit", "X-RateLimit-Remaining"],
+    max_age=600,
 )
 
 # Include routers
@@ -158,6 +180,8 @@ app.include_router(classify_router)
 app.include_router(health_router)
 app.include_router(conversations_router)
 app.include_router(facilitator_router)
+app.include_router(auth_router, prefix="/api")
+app.include_router(conversations_auth_router, prefix="/api")
 
 
 # Global exception handlers

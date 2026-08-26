@@ -128,6 +128,46 @@ class Config:
         """Get MongoDB database name."""
         return os.getenv('MONGODB_DB_NAME', 'ayurpedia')
     
+    @property
+    def jwt_secret_key(self) -> str:
+        """Get JWT secret key for token generation."""
+        return os.getenv('JWT_SECRET_KEY', 'your-secret-key-change-in-production')
+    
+    @property
+    def jwt_algorithm(self) -> str:
+        """Get JWT algorithm."""
+        return os.getenv('JWT_ALGORITHM', 'HS256')
+    
+    @property
+    def jwt_access_token_expire_minutes(self) -> int:
+        """Get JWT access token expiration in minutes."""
+        return int(os.getenv('JWT_ACCESS_TOKEN_EXPIRE_MINUTES', '30'))
+    
+    @property
+    def jwt_refresh_token_expire_days(self) -> int:
+        """Get JWT refresh token expiration in days."""
+        return int(os.getenv('JWT_REFRESH_TOKEN_EXPIRE_DAYS', '7'))
+    
+    @property
+    def redis_url(self) -> str:
+        """Get Redis connection URL."""
+        return os.getenv('REDIS_URL', 'redis://localhost:6379')
+    
+    @property
+    def sentry_dsn(self) -> str:
+        """Get Sentry DSN for error tracking."""
+        return os.getenv('SENTRY_DSN', '')
+    
+    @property
+    def rate_limit_per_minute(self) -> int:
+        """Get rate limit per minute."""
+        return int(os.getenv('RATE_LIMIT_PER_MINUTE', '60'))
+    
+    @property
+    def frontend_url(self) -> str:
+        """Get frontend URL for CORS."""
+        return os.getenv('FRONTEND_URL', 'http://localhost:5173')
+    
     def _print_config(self) -> None:
         """Print loaded configuration for debugging (without exposing keys)."""
         print("Configuration loaded successfully:")
