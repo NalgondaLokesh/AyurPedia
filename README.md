@@ -3,7 +3,6 @@
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.104.1-green?logo=fastapi)](https://fastapi.tiangolo.com)
 [![React](https://img.shields.io/badge/React-18-blue?logo=react)](https://reactjs.org)
 [![LangChain](https://img.shields.io/badge/LangChain-0.3.0-orange)](https://langchain.com)
-[![Neo4j](https://img.shields.io/badge/Neo4j-Cloud-blue?logo=neo4j)](https://neo4j.com)
 [![Qdrant](https://img.shields.io/badge/Qdrant-Cloud-red?logo=qdrant)](https://qdrant.tech)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
 
@@ -38,8 +37,7 @@ Ayurvedic practitioners, researchers, and AYUSH startups face significant challe
 AyurPedia addresses these challenges through an integrated AI-powered platform that:
 
 - **Provides Instant Legal Guidance**: AI-powered chat with verified citations from authoritative legal documents
-- **Automates Classification**: Intelligent formulation classification under 7 regulatory classes
-- **Visualizes Knowledge**: Interactive knowledge graph showing relationships between legal entities
+- **Automates Classification**: Intelligent formulation classification under 7 regulatory classes using AI and RAG
 - **Supports Multilingual Queries**: Translation support for 10+ Indian languages
 - **Ensures Citation Accuracy**: All answers backed by verified legal document references
 - **Offers Jurisdiction Flexibility**: Toggle between India and International legal frameworks
@@ -65,7 +63,6 @@ graph TD
     K --> B
     B --> A
     
-    L[Neo4j Knowledge Graph] -.->|Frontend Visualization| B
     M[NVIDIA NIM] -.->|Fallback on Rate Limit| I
     N[MongoDB] -.->|User Sessions| C
     O[Cohere Embeddings] -.->|Vector Generation| F
@@ -100,7 +97,6 @@ graph LR
 2. **VectorRetrieverAgent**: Searches Qdrant for relevant document chunks using semantic similarity
 3. **ReasoningAgent**: Synthesizes response using retrieved documents with Groq LLM
 4. **CitationAgent**: Validates citations against retrieved documents and calculates confidence
-5. **Knowledge Graph**: Neo4j-based visualization of legal entities and relationships (frontend only)
 
 ### Data Flow
 
@@ -119,14 +115,13 @@ User Query → Query Understanding → Vector Search → LLM Synthesis → Citat
 | **Backend Framework** | FastAPI 0.104.1 | REST API server |
 | **LLM Orchestration** | LangChain 0.3.0 | RAG pipeline management |
 | **Workflow Engine** | LangGraph 0.2.0 | Agentic reasoning workflows |
-| **Graph Database** | Neo4j Aura Cloud | Knowledge graph storage (frontend visualization) |
+| **Graph Database** | Neo4j Aura Cloud | Knowledge graph for agentic RAG (backend only) |
 | **Vector Database** | Qdrant Cloud | Document storage & retrieval |
 | **Session Storage** | MongoDB | User session management |
 | **Primary LLM** | Groq (Llama models) | Response generation |
 | **Fallback LLM** | NVIDIA NIM (DeepSeek) | Backup generation on rate limits |
 | **Embeddings** | Cohere embed-english-v3.0 | 1024-dim vector embeddings |
 | **Frontend Framework** | React 18 | User interface |
-| **Graph Visualization** | React Flow | Interactive knowledge graph |
 | **Build Tool** | Vite | Fast development & bundling |
 | **Styling** | Tailwind CSS | Utility-first CSS |
 | **Document Parsing** | LlamaParse | PDF extraction |
@@ -143,7 +138,7 @@ User Query → Query Understanding → Vector Search → LLM Synthesis → Citat
 
 ### Challenge 2: Graph Retrieval Complexity
 **Problem**: Knowledge graph retrieval was finding 0 relevant nodes due to empty graph
-**Solution**: Simplified agentic RAG to use vector-only retrieval, reserved Neo4j for frontend visualization
+**Solution**: Simplified agentic RAG to use vector-only retrieval with hierarchical chunking
 
 ### Challenge 3: Response Format Issues
 **Problem**: Complex REASONING/ANSWER/CITATIONS format causing parsing errors
@@ -166,10 +161,10 @@ User Query → Query Understanding → Vector Search → LLM Synthesis → Citat
 ## Future Scope 🚀
 
 ### Short-term Enhancements
-- [ ] Populate Neo4j knowledge graph with actual legal entities
-- [ ] Implement graph-based retrieval in agentic RAG
 - [ ] Add query history and analytics dashboard
-- [ ] Implement advanced graph analytics (centrality, pathfinding)
+- [ ] Implement advanced retrieval analytics
+- [ ] Add formulation similarity search
+- [ ] Implement regulatory pathway recommender
 
 ### Medium-term Features
 - [ ] Mobile app (Progressive Web App)
@@ -195,7 +190,6 @@ User Query → Query Understanding → Vector Search → LLM Synthesis → Citat
 - Python 3.10 or higher
 - pip package manager
 - Qdrant Cloud account (or local Qdrant instance)
-- Neo4j Aura Cloud account (or local Neo4j instance)
 - MongoDB Atlas account (or local MongoDB instance)
 - API keys:
   - Groq API Key
@@ -236,11 +230,6 @@ cp .env.example .env
 # Qdrant Configuration
 QDRANT_URL=https://your-qdrant-cloud.qdrant.io
 QDRANT_API_KEY=your_qdrant_api_key
-
-# Neo4j Configuration
-NEO4J_URI=neo4j+s://your-neo4j-instance.databases.neo4j.io
-NEO4J_USER=neo4j
-NEO4J_PASSWORD=your_neo4j_password
 
 # MongoDB Configuration
 MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/ayurpedia
@@ -302,31 +291,15 @@ npm run dev
 ```
 The frontend will be available at `http://localhost:5173`
 
-### Building Knowledge Graph (Optional)
-
-To populate the Neo4j knowledge graph with legal entities:
-
-```bash
-cd backend
-python scripts/build_kg_from_docs.py
-```
-
-To force use of NVIDIA NIM for entity extraction:
-
-```bash
-python scripts/build_kg_from_docs.py --force-nvidia-nim
-```
-
 ---
 
 ## Key Features 🚀
 
-- 🏷️ **Formulation Classification**: Categorize herbal products under 7 regulatory classes (Classical, Proprietary, Ayurveda-Aahar, Cosmetic, Phytopharmaceutical, etc.)
+- 🏷️ **Formulation Classification**: AI-powered categorization of herbal products under 7 regulatory classes (Classical, Proprietary, Ayurveda-Aahar, Cosmetic, Phytopharmaceutical, etc.)
 - 🔍 **Patentability Analysis**: Clarify Section 3(p) restrictions against patenting traditional knowledge, novelty requirements, and synergistic bio-enhancers
 - 📜 **Regulatory Frameworks**: Guidance on Indian Patents Act 1970, Biological Diversity Act 2002 (NBA approval), FSSAI regulations, and international treaties
 - 💬 **AI-Powered Chat**: Interactive Q&A with citation enforcement and confidence scoring
-- 🧠 **Knowledge Graph**: Interactive visualization of legal entities and relationships using Neo4j
-- 🤖 **Agentic RAG**: Multi-step reasoning with LangGraph agents for complex legal queries
+-  **Agentic RAG**: Multi-step reasoning with LangGraph agents for complex legal queries
 - 🌐 **Multilingual Support**: Support for multiple languages (translation integration available)
 - 🔄 **Jurisdiction Toggle**: Switch between India and International legal frameworks
 - 🔐 **User Authentication**: Secure login/signup with session management
@@ -344,17 +317,14 @@ AyurPedia/
 │   │   ├── core/                # Configuration, databases, LLM client
 │   │   │   ├── config.py       # Environment configuration
 │   │   │   ├── database.py     # Qdrant vector database
-│   │   │   ├── neo4j.py        # Neo4j graph database
 │   │   │   ├── mongodb.py      # MongoDB session storage
 │   │   │   └── llm.py          # LLM client with fallback
-│   │   ├── graph/               # Knowledge graph system
-│   │   │   ├── agents.py       # LangGraph agentic reasoning
-│   │   │   ├── classification.py # Classification node
-│   │   │   ├── entity_extractor.py # LLM entity extraction
-│   │   │   ├── ingestion.py    # Graph data ingestion
-│   │   │   └── schema.py       # Graph schema & constraints
+│   │   ├── graph/               # Agentic RAG system
+│   │   │   └── agents.py       # LangGraph agentic reasoning
 │   │   ├── rag/                 # RAG system
-│   │   │   ├── retriever.py    # Jurisdiction-aware retrieval
+│   │   │   ├── retriever.py    # Jurisdiction-aware retrieval with hierarchical chunking
+│   │   │   ├── hierarchical.py # Parent-child chunking strategy
+│   │   │   ├── hybrid_retriever.py # Hybrid search implementation
 │   │   │   ├── prompts.py      # LLM prompt templates
 │   │   │   └── chains.py       # RAG chain implementation
 │   │   ├── models/              # Pydantic models
@@ -366,8 +336,7 @@ AyurPedia/
 │   │   │   └── classification_service.py # Classification logic
 │   │   ├── api/                 # FastAPI endpoints
 │   │   │   ├── chat.py         # Chat endpoint
-│   │   │   ├── classify.py     # Classification endpoint
-│   │   │   ├── graph.py        # Knowledge graph endpoints
+│   │   │   ├── classify.py     # Classification endpoint (AI + RAG)
 │   │   │   ├── auth.py         # Authentication endpoints
 │   │   │   └── health.py        # Health check
 │   │   └── utils/               # Utilities
@@ -384,7 +353,6 @@ AyurPedia/
 │   │   ├── components/          # React components
 │   │   │   ├── Chat/           # Chat interface
 │   │   │   ├── Classification/ # Classification UI
-│   │   │   ├── Graph/          # Knowledge graph visualization
 │   │   │   ├── Auth/           # Login/Signup components
 │   │   │   └── Common/         # Shared components
 │   │   ├── services/            # API services
@@ -397,8 +365,7 @@ AyurPedia/
 │   │   ├── views/               # Page views
 │   │   │   ├── Landing.jsx     # Landing page
 │   │   │   ├── ChatView.jsx    # Chat interface
-│   │   │   ├── ClassifyView.jsx # Classification UI
-│   │   │   └── GraphView.jsx   # Knowledge graph
+│   │   │   └── ClassifyView.jsx # Classification UI
 │   │   └── styles/              # CSS styles
 │   ├── public/                  # Static assets
 │   ├── package.json             # Node dependencies
@@ -428,9 +395,9 @@ AyurPedia/
 **Step 1:** Navigate to the landing page
 **Step 2:** Click "Sign In" or "Sign Up"
 **Step 3:** Enter your credentials
-**Step 4:** Access Chat, Classifier, and Knowledge Graph features
+**Step 4:** Access Chat and Classifier features
 
-**Note:** Chat, Classifier, and Knowledge Graph are only accessible after login.
+**Note:** Chat and Classifier are only accessible after login.
 
 ### 2. Formulation Classification
 
@@ -465,20 +432,7 @@ Result: Classical Ayurvedic Formulation
 - Confidence score badge
 - Legal disclaimer
 
-### 4. Knowledge Graph Exploration
-
-**Step 1:** Navigate to the Knowledge Graph page (after login)
-**Step 2:** Use filters to explore by jurisdiction or node type
-**Step 3:** Click on nodes to expand relationships
-**Step 4:** Visualize legal entities and their connections
-
-**Features:**
-- Interactive node expansion
-- Jurisdiction filtering
-- Relationship visualization
-- Entity type coloring
-
-### 5. Multilingual Support
+### 4. Multilingual Support
 
 **Step 1:** Select your preferred language from the dropdown
 **Step 2:** Type your query in your language
@@ -542,7 +496,6 @@ Result: Classical Ayurvedic Formulation
   ],
   "confidence": "High",
   "jurisdiction": "India",
-  "graph_context": [...],
   "disclaimer": "This is information, not legal advice."
 }
 ```
@@ -562,42 +515,12 @@ Result: Classical Ayurvedic Formulation
 **Response:**
 ```json
 {
-  "classification": "Classical Ayurvedic Formulation",
-  "category": "Classical",
+  "classification": "Classical",
   "confidence": 0.95,
-  "regulatory_framework": "Drugs and Cosmetics Act",
-  "requirements": ["GMP certification", "AYUSH license"]
-}
-```
-
-### Knowledge Graph Endpoints
-
-**GET** `/api/graph/explore?start_node=Patents Act 1970&max_depth=2&jurisdiction=India`
-
-**Response:**
-```json
-{
-  "success": true,
-  "nodes": [
-    {"id": "Patents Act 1970", "label": "Statute", "data": {...}},
-    {"id": "Section 3(p)", "label": "Section", "data": {...}}
-  ],
-  "relationships": [
-    {"from": "Patents Act 1970", "to": "Section 3(p)", "type": "CONTAINS"}
-  ]
-}
-```
-
-**GET** `/api/graph/relationships/{node_id}?depth=1`
-
-**Response:**
-```json
-{
-  "success": true,
-  "data": {
-    "node": {...},
-    "relationships": [...]
-  }
+  "reasoning": "Formulation based on classical Ayurvedic texts with traditional ingredients",
+  "regulatory_requirements": ["Reference to classical texts required", "TKDL check recommended"],
+  "key_factors": ["Traditional knowledge", "Classical ingredients"],
+  "ai_generated": true
 }
 ```
 
@@ -610,49 +533,13 @@ Result: Classical Ayurvedic Formulation
 {
   "status": "healthy",
   "qdrant_connected": true,
-  "neo4j_connected": true,
   "mongodb_connected": true,
   "groq_available": true,
   "nvidia_available": false,
-  "india_vectors": 15234,
-  "international_vectors": 8921,
-  "graph_nodes": 450,
-  "graph_relationships": 890
+  "india_vectors": 1883,
+  "international_vectors": 792
 }
 ```
-
----
-
-## Building Knowledge Graph (Optional) 📄
-
-To populate the Neo4j knowledge graph with legal entities:
-
-```bash
-cd backend
-python scripts/build_kg_from_docs.py
-```
-
-To force use of NVIDIA NIM for entity extraction:
-
-```bash
-python scripts/build_kg_from_docs.py --force-nvidia-nim
-```
-
-**Process Flow:**
-1. **PDF Parsing**: LlamaParse extracts structured text
-2. **Text Chunking**: Documents split into 3000-character chunks with overlap
-3. **Entity Extraction**: LLM extracts entities (Statutes, Sections, Cases, Concepts)
-4. **Relationship Extraction**: LLM identifies relationships between entities
-5. **Graph Construction**: Nodes and relationships stored in Neo4j
-6. **Deduplication**: Duplicate entities merged based on unique identifiers
-
-**Entity Types:**
-- Statute: Legal acts, regulations, treaties
-- Section: Specific sections within statutes
-- Case: Legal cases and precedents
-- Concept: Legal concepts and definitions
-- Framework: Regulatory frameworks
-- Compliance: Compliance requirements
 
 ---
 
@@ -716,18 +603,18 @@ CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
 
 ### Phase 3 ✅
 - [x] User authentication
-- [x] Knowledge graph integration
 - [x] Agentic RAG with LangGraph
-- [x] Interactive graph visualization
+- [x] Hierarchical parent-child chunking
+- [x] AI-powered classification with RAG
 - [x] Session management with MongoDB
 
 ### Phase 4 (Future)
-- [ ] Query history and analytics
-- [ ] Advanced graph analytics
-- [ ] Mobile app (PWA)
-- [ ] Offline mode
-- [ ] Voice input/output
-- [ ] Real-time collaboration
+- [ ] Patent novelty checker (Section 3(p) analysis)
+- [ ] Regulatory pathway recommender
+- [ ] Ingredient legality checker
+- [ ] Multi-jurisdictional compliance mapper
+- [ ] Prior art visualizer
+- [ ] Compliance document generator
 
 ## Disclaimer ⚠️
 
