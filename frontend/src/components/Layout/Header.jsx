@@ -14,16 +14,19 @@ export const Header = () => {
   const location = useLocation();
 
   const isCurrentRoute = (path) => location.pathname === path;
+  const isLandingPage = location.pathname === '/' && !isAuthenticated;
 
   const toggleTheme = () => {
     setTheme(theme === 'light' ? 'dark' : 'light');
   };
 
-  const navLinks = [
-    { to: '/', label: 'Home', icon: HiSparkles, tab: null },
-    { to: '/chat', label: 'Legal Chat', icon: HiChatBubbleLeftRight, tab: 'chat' },
-    { to: '/classify', label: 'Classifier', icon: HiDocumentMagnifyingGlass, tab: 'classify' },
-  ];
+  const navLinks = isAuthenticated
+    ? [
+        { to: '/chat', label: 'Legal Chat', icon: HiChatBubbleLeftRight, tab: 'chat' },
+        { to: '/classify', label: 'Classifier', icon: HiDocumentMagnifyingGlass, tab: 'classify' },
+        { to: '/graph', label: 'Knowledge Graph', icon: HiSparkles, tab: null },
+      ]
+    : [];
 
   return (
     <header className="sticky top-0 z-40 bg-stone-50/80 dark:bg-[#0d1310]/85 backdrop-blur-xl border-b border-stone-200/70 dark:border-primary-900/40">
@@ -33,7 +36,7 @@ export const Header = () => {
         <div className="flex items-center justify-between h-16 gap-4">
           
           {/* Logo & Brand */}
-          <Link to="/" className="flex items-center gap-3 shrink-0 group">
+          <Link to={isAuthenticated ? '/chat' : '/'} className="flex items-center gap-3 shrink-0 group">
             <div className="relative w-11 h-11 rounded-2xl bg-primary-800 flex items-center justify-center text-accent-300 ring-1 ring-primary-700/50 shadow-card group-hover:ring-accent-400/60 transition-all duration-300 group-hover:-translate-y-0.5">
               <span className="absolute inset-1 rounded-xl border border-accent-400/20" />
               <AyurMark className="w-6 h-6 relative z-10" />
@@ -76,7 +79,7 @@ export const Header = () => {
 
           {/* Right Controls: Jurisdiction + Language + Theme + Auth + Facilitator */}
           <div className="hidden lg:flex items-center gap-2">
-            <JurisdictionToggle />
+            {!isLandingPage && <JurisdictionToggle />}
             <LanguageSelector />
             
             <button
@@ -159,33 +162,42 @@ export const Header = () => {
         {mobileMenuOpen && (
           <div className="lg:hidden py-4 border-t border-stone-200/70 dark:border-primary-900/40 space-y-3 animate-in fade-in slide-in-from-top-2 duration-200">
             {/* Jurisdiction + Language row */}
-            <div className="flex flex-wrap items-center justify-center gap-2 pb-3">
-              <JurisdictionToggle />
-              <LanguageSelector />
-            </div>
-            <div className="grid grid-cols-3 gap-2">
-              {navLinks.map(({ to, label, icon: Icon, tab }) => {
-                const active = tab ? activeTab === tab : isCurrentRoute(to);
-                return (
-                  <Link
-                    key={to}
-                    to={to}
-                    onClick={() => {
-                      if (tab) setActiveTab(tab);
-                      setMobileMenuOpen(false);
-                    }}
-                    className={`flex flex-col items-center justify-center gap-1.5 p-3 text-xs font-semibold rounded-2xl border transition-all duration-200 ${
+            {!isLandingPage && (
+              <div className="flex flex-wrap items-center justify-center gap-2 pb-3">
+                <JurisdictionToggle />
+                <LanguageSelector />
+              </div>
+            )}
+            {isLandingPage && (
+              <div className="flex flex-wrap items-center justify-center gap-2 pb-3">
+                <LanguageSelector />
+              </div>
+            )}
+            {navLinks.length > 0 && (
+              <div className="grid grid-cols-3 gap-2">
+                {navLinks.map(({ to, label, icon: Icon, tab }) => {
+                  const active = tab ? activeTab === tab : isCurrentRoute(to);
+                  return (
+                    <Link
+                      key={to}
+                      to={to}
+                      onClick={() => {
+                        if (tab) setActiveTab(tab);
+                        setMobileMenuOpen(false);
+                      }}
+                      className={`flex flex-col items-center justify-center gap-1.5 p-3 text-xs font-semibold rounded-2xl border transition-all duration-200 ${
                       active
                         ? 'bg-primary-800 border-primary-700 text-stone-50 shadow-card'
                         : 'border-stone-200 dark:border-primary-900/50 text-stone-600 dark:text-stone-300 hover:bg-white/70 dark:hover:bg-primary-900/40'
                     }`}
-                  >
-                    <Icon className={`w-5 h-5 ${active ? 'text-accent-300' : 'text-primary-600 dark:text-primary-400'}`} />
-                    <span>{label}</span>
-                  </Link>
-                );
-              })}
-            </div>
+                    >
+                      <Icon className={`w-5 h-5 ${active ? 'text-accent-300' : 'text-primary-600 dark:text-primary-400'}`} />
+                      <span>{label}</span>
+                    </Link>
+                  );
+                })}
+              </div>
+            )}
             {isAuthenticated ? (
               <div className="grid grid-cols-2 gap-2">
                 <Link
