@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useClassification } from '../../hooks/useClassification';
 import ClassificationQuestion from './ClassificationQuestion';
 import ClassificationResult from './ClassificationResult';
 import Disclaimer from '../Common/Disclaimer';
 import { Mandala } from '../Common/Botanical';
-import { HiDocumentMagnifyingGlass, HiSparkles, HiPencilSquare, HiListBullet } from 'react-icons/hi2';
+import { HiDocumentMagnifyingGlass, HiSparkles, HiPencilSquare, HiListBullet, HiInformationCircle } from 'react-icons/hi2';
+import api from '../../services/api';
 
 export const ClassifierFlow = () => {
   const {
@@ -21,6 +22,31 @@ export const ClassifierFlow = () => {
 
   const [mode, setMode] = useState('wizard'); // 'wizard' | 'direct'
   const [directDescription, setDirectDescription] = useState('');
+  const [explanation, setExplanation] = useState(null);
+  const [loadingExplanation, setLoadingExplanation] = useState(true);
+
+  // Fetch AI-powered explanation on component mount
+  useEffect(() => {
+    const fetchExplanation = async () => {
+      try {
+        const response = await api.get('/api/classify/explanation');
+        setExplanation(response.data);
+      } catch (error) {
+        console.error('Failed to fetch classification explanation:', error);
+        // Set fallback explanation
+        setExplanation({
+          headline: "Understanding Ayurvedic Regulatory Classification",
+          explanation: "Classification determines which regulatory framework applies to your Ayurvedic formulation. Different categories have different licensing requirements, approval processes, and compliance standards.",
+          key_categories: ["Classical", "Proprietary", "Ayurveda-Aahar", "Others"],
+          business_impact: "Correct classification ensures proper regulatory compliance and market access."
+        });
+      } finally {
+        setLoadingExplanation(false);
+      }
+    };
+
+    fetchExplanation();
+  }, []);
 
   const handleDirectClassify = (e) => {
     e.preventDefault();
@@ -76,6 +102,57 @@ export const ClassifierFlow = () => {
             </div>
           )}
         </div>
+      </div>
+
+      {/* Classification Explanation Section */}
+      <div className="bg-gradient-to-br from-stone-50 to-amber-50 dark:from-primary-950/30 dark:to-primary-900/30 rounded-3xl p-6 sm:p-7 border border-stone-200/80 dark:border-primary-900/50 shadow-sm">
+        {loadingExplanation ? (
+          <div className="flex items-center justify-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-accent-500"></div>
+          </div>
+        ) : explanation ? (
+          <div className="flex items-start gap-4">
+            <div className={`p-2.5 rounded-xl shrink-0 ${explanation.ai_generated ? 'bg-accent-100 dark:bg-accent-900/30 text-accent-700 dark:text-accent-300' : 'bg-stone-200 dark:bg-stone-700 text-stone-600 dark:text-stone-300'}`}>
+              {explanation.ai_generated ? <HiSparkles className="w-6 h-6" /> : <HiInformationCircle className="w-6 h-6" />}
+            </div>
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-2">
+                <h3 className="text-lg font-serif font-semibold text-stone-900 dark:text-stone-100">
+                  {explanation.headline}
+                </h3>
+                {explanation.ai_generated && (
+                  <span className="text-[10px] bg-accent-100 dark:bg-accent-900/30 text-accent-700 dark:text-accent-300 px-2 py-0.5 rounded-full font-medium">
+                    AI + RAG Powered
+                  </span>
+                )}
+              </div>
+              <p className="text-sm text-stone-600 dark:text-stone-300 leading-relaxed mb-3">
+                {explanation.explanation}
+              </p>
+              
+              {explanation.key_categories && (
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4">
+                  {explanation.key_categories.map((category, index) => (
+                    <div key={index} className="p-3 bg-white dark:bg-primary-900/50 rounded-xl border border-stone-200 dark:border-primary-800/50">
+                      <div className="text-xs font-bold text-primary-800 dark:text-accent-400 mb-1">{category}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              
+              {explanation.business_impact && (
+                <div className="mt-4 p-3 bg-white/60 dark:bg-primary-900/30 rounded-xl border border-stone-200 dark:border-primary-800/50">
+                  <div className="text-xs font-semibold text-stone-700 dark:text-stone-300 mb-1">Business Impact</div>
+                  <div className="text-[11px] text-stone-600 dark:text-stone-400">{explanation.business_impact}</div>
+                </div>
+              )}
+            </div>
+          </div>
+        ) : (
+          <div className="text-center py-4 text-stone-500 dark:text-stone-400 text-sm">
+            Unable to load classification explanation
+          </div>
+        )}
       </div>
 
       {/* Main Classifier Card */}

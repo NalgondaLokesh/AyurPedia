@@ -11,8 +11,6 @@ from bson import ObjectId
 from ..core.mongodb import get_mongodb
 from ..api.auth import get_current_user
 from ..models.user import UserResponse
-from ..services.audit_service import get_audit_service, AuditService
-from ..models.audit import AuditAction, AuditLogCreate
 
 router = APIRouter(prefix="/conversations", tags=["Conversations"])
 
@@ -48,8 +46,7 @@ class MessageCreate(BaseModel):
 @router.post("", response_model=ConversationResponse, status_code=status.HTTP_201_CREATED)
 async def create_conversation(
     conv_data: ConversationCreate,
-    current_user: UserResponse = Depends(get_current_user),
-    audit_service: AuditService = Depends(get_audit_service)
+    current_user: UserResponse = Depends(get_current_user)
 ):
     """Create a new conversation for the authenticated user."""
     mongodb = get_mongodb()
@@ -72,17 +69,6 @@ async def create_conversation(
         if "conversations" not in mongodb._memory_store:
             mongodb._memory_store["conversations"] = {}
         mongodb._memory_store["conversations"][conversation_id] = conversation_doc
-    
-    # Log audit
-    await audit_service.create_log(
-        AuditLogCreate(
-            user_id=current_user.id,
-            action=AuditAction.CONVERSATION_CREATE,
-            resource_type="conversation",
-            resource_id=conversation_id,
-            metadata=None
-        )
-    )
     
     return ConversationResponse(
         conversation_id=conversation_id,
@@ -219,8 +205,7 @@ async def add_message(
 @router.delete("/{conversation_id}")
 async def delete_conversation(
     conversation_id: str,
-    current_user: UserResponse = Depends(get_current_user),
-    audit_service: AuditService = Depends(get_audit_service)
+    current_user: UserResponse = Depends(get_current_user)
 ):
     """Delete a conversation."""
     mongodb = get_mongodb()
@@ -249,16 +234,5 @@ async def delete_conversation(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Conversation not found"
             )
-    
-    # Log audit
-    await audit_service.create_log(
-        AuditLogCreate(
-            user_id=current_user.id,
-            action=AuditAction.CONVERSATION_DELETE,
-            resource_type="conversation",
-            resource_id=conversation_id,
-            metadata=None
-        )
-    )
     
     return {"message": "Conversation deleted successfully"}

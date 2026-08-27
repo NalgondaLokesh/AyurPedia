@@ -5,7 +5,6 @@ Sentry error tracking integration for AyurPedia.
 import logging
 import sentry_sdk
 from sentry_sdk.integrations.fastapi import FastApiIntegration
-from sentry_sdk.integrations.redis import RedisIntegration
 
 from .config import get_config
 
@@ -31,7 +30,6 @@ def init_sentry():
     try:
         integrations = [
             FastApiIntegration(),
-            RedisIntegration(),
         ]
         
         # Only add MongoIntegration if available

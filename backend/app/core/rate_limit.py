@@ -1,6 +1,6 @@
 """
 Rate limiting middleware for API endpoints.
-Uses slowapi for rate limiting with Redis backend.
+Uses in-memory rate limiting (removed Redis dependency).
 """
 
 import logging
@@ -9,14 +9,18 @@ from fastapi import Request, HTTPException, status
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
+from collections import defaultdict
+import time
 
-from .redis import get_redis
 from .config import get_config
 
 logger = logging.getLogger(__name__)
 
 # Initialize rate limiter
 limiter = Limiter(key_func=get_remote_address)
+
+# In-memory rate limit storage
+rate_limit_store = defaultdict(list)
 
 
 def get_rate_limit_key(request: Request) -> str:
@@ -31,7 +35,7 @@ def get_rate_limit_key(request: Request) -> str:
 
 
 class RateLimitMiddleware:
-    """Custom rate limiting middleware."""
+    """Custom rate limiting middleware with in-memory storage."""
     
     def __init__(self, requests_per_minute: int = 60):
         self.requests_per_minute = requests_per_minute
@@ -42,24 +46,24 @@ class RateLimitMiddleware:
         try:
             # Apply rate limiting
             key = get_rate_limit_key(request)
-            redis_client = get_redis()
+            current_time = time.time()
+            
+            # Clean up old requests (older than 60 seconds)
+            rate_limit_store[key] = [
+                timestamp for timestamp in rate_limit_store[key]
+                if current_time - timestamp < 60
+            ]
             
             # Check if rate limit exceeded
-            if redis_client.is_connected:
-                limit_key = f"rate_limit:{key}"
-                current = await redis_client.get(limit_key)
-                
-                if current is None:
-                    await redis_client.set(limit_key, 1, ttl=60)
-                else:
-                    current = int(current)
-                    if current >= self.requests_per_minute:
-                        logger.warning(f"Rate limit exceeded for {key}")
-                        raise HTTPException(
-                            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-                            detail="Rate limit exceeded. Please try again later."
-                        )
-                    await redis_client.set(limit_key, current + 1, ttl=60)
+            if len(rate_limit_store[key]) >= self.requests_per_minute:
+                logger.warning(f"Rate limit exceeded for {key}")
+                raise HTTPException(
+                    status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                    detail="Rate limit exceeded. Please try again later."
+                )
+            
+            # Add current request timestamp
+            rate_limit_store[key].append(current_time)
             
             response = await call_next(request)
             return response

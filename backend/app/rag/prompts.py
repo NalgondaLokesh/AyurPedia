@@ -5,32 +5,6 @@ Prompt templates for AyurPedia RAG system.
 from langchain_core.prompts import PromptTemplate
 
 
-# Classification prompt for formulation categorization
-CLASSIFICATION_PROMPT = PromptTemplate(
-    input_variables=["formulation_description"],
-    template="""You are an expert in Indian pharmaceutical and traditional medicine regulations. 
-Classify the following formulation into one of these categories:
-
-Categories:
-1. Classical - Traditional Ayurvedic formulations from classical texts (e.g., Chyawanprash, Triphala)
-2. Proprietary - New formulations with patent potential or novel combinations
-3. Ayurveda-Aahar - Food products containing Ayurvedic herbs listed in Schedule A
-4. Cosmetic - Products for external application with cosmetic benefits
-5. Phytopharmaceutical - Plant-derived pharmaceutical products
-6. Nutraceutical - Dietary supplements with health benefits
-7. Unknown - Cannot classify based on description
-
-Formulation Description: {formulation_description}
-
-Provide your response in this format:
-Category: [category name]
-Confidence: [0.0-1.0]
-Relevant Laws: [list of relevant laws]
-Description: [brief explanation of classification]
-"""
-)
-
-
 # Language name mapping helper
 LANGUAGE_MAP = {
     'hi': 'Hindi (हिंदी)',

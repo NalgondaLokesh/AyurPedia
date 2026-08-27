@@ -212,14 +212,11 @@ class AuthService:
                 await mongodb.db.conversations.delete_many({"user_id": user_id})
                 # Delete user's classifications
                 await mongodb.db.classifications.delete_many({"user_id": user_id})
-                # Delete user's audit logs
-                await mongodb.db.audit_logs.delete_many({"user_id": user_id})
                 return True
             except:
                 await mongodb.db.users.delete_one({"id": user_id})
                 await mongodb.db.conversations.delete_many({"user_id": user_id})
                 await mongodb.db.classifications.delete_many({"user_id": user_id})
-                await mongodb.db.audit_logs.delete_many({"user_id": user_id})
                 return True
         else:
             # In-memory deletion
@@ -231,10 +228,6 @@ class AuthService:
             mongodb._memory_store["classifications"] = [
                 c for c in mongodb._memory_store.get("classifications", [])
                 if c.get("user_id") != user_id
-            ]
-            mongodb._memory_store["audit_logs"] = [
-                a for a in mongodb._memory_store.get("audit_logs", [])
-                if a.get("user_id") != user_id
             ]
             return True
         return False

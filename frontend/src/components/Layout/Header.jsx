@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { HiSparkles, HiChatBubbleLeftRight, HiDocumentMagnifyingGlass, HiBars3, HiXMark, HiUserGroup, HiUser, HiArrowRightOnRectangle, HiSun, HiMoon, HiCog } from 'react-icons/hi2';
+import { HiChatBubbleLeftRight, HiDocumentMagnifyingGlass, HiBars3, HiXMark, HiUserGroup, HiUser, HiArrowRightOnRectangle, HiSun, HiMoon, HiCog } from 'react-icons/hi2';
 import { useApp } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
 import JurisdictionToggle from '../Common/JurisdictionToggle';
@@ -15,6 +15,7 @@ export const Header = () => {
 
   const isCurrentRoute = (path) => location.pathname === path;
   const isLandingPage = location.pathname === '/' && !isAuthenticated;
+  const isAuthPage = location.pathname === '/login' || location.pathname === '/register';
 
   const toggleTheme = () => {
     setTheme(theme === 'light' ? 'dark' : 'light');
@@ -24,7 +25,6 @@ export const Header = () => {
     ? [
         { to: '/chat', label: 'Legal Chat', icon: HiChatBubbleLeftRight, tab: 'chat' },
         { to: '/classify', label: 'Classifier', icon: HiDocumentMagnifyingGlass, tab: 'classify' },
-        { to: '/graph', label: 'Knowledge Graph', icon: HiSparkles, tab: null },
       ]
     : [];
 
@@ -79,7 +79,7 @@ export const Header = () => {
 
           {/* Right Controls: Jurisdiction + Language + Theme + Auth + Facilitator */}
           <div className="hidden lg:flex items-center gap-2">
-            {!isLandingPage && <JurisdictionToggle />}
+            {!isLandingPage && !isAuthPage && <JurisdictionToggle />}
             <LanguageSelector />
             
             <button
@@ -162,13 +162,13 @@ export const Header = () => {
         {mobileMenuOpen && (
           <div className="lg:hidden py-4 border-t border-stone-200/70 dark:border-primary-900/40 space-y-3 animate-in fade-in slide-in-from-top-2 duration-200">
             {/* Jurisdiction + Language row */}
-            {!isLandingPage && (
+            {!isLandingPage && !isAuthPage && (
               <div className="flex flex-wrap items-center justify-center gap-2 pb-3">
                 <JurisdictionToggle />
                 <LanguageSelector />
               </div>
             )}
-            {isLandingPage && (
+            {(isLandingPage || isAuthPage) && (
               <div className="flex flex-wrap items-center justify-center gap-2 pb-3">
                 <LanguageSelector />
               </div>

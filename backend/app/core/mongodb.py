@@ -27,8 +27,7 @@ class MongoDBManager:
         self._memory_store = {
             "conversations": {},
             "classifications": [],
-            "facilitator_requests": [],
-            "audit_logs": []
+            "facilitator_requests": []
         }
     
     async def connect(self) -> bool:
@@ -79,11 +78,6 @@ class MongoDBManager:
             # Facilitator requests index
             await self.db.facilitator_requests.create_index([("created_at", pymongo.DESCENDING)])
             await self.db.facilitator_requests.create_index([("user_id", pymongo.ASCENDING)])
-            
-            # Audit logs index
-            await self.db.audit_logs.create_index([("user_id", pymongo.ASCENDING)])
-            await self.db.audit_logs.create_index([("timestamp", pymongo.DESCENDING)])
-            await self.db.audit_logs.create_index([("action", pymongo.ASCENDING)])
             
             logger.info("MongoDB indexes verified successfully.")
         except Exception as e:

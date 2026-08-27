@@ -32,8 +32,8 @@ async def health_check() -> dict:
         # Check Qdrant connection
         qdrant_status = _check_qdrant(config)
         
-        # Check Gemini API availability
-        gemini_status = _check_gemini(llm_client)
+        # Check Groq API availability
+        groq_status = _check_groq(llm_client)
         
         # Check NVIDIA NIM availability
         nvidia_status = _check_nvidia(llm_client)
@@ -41,7 +41,7 @@ async def health_check() -> dict:
         # Overall status
         overall_status = "healthy" if all([
             qdrant_status["status"] == "ok",
-            gemini_status["status"] == "ok" or nvidia_status["status"] == "ok"
+            groq_status["status"] == "ok" or nvidia_status["status"] == "ok"
         ]) else "degraded"
         
         return {
@@ -49,7 +49,7 @@ async def health_check() -> dict:
             "timestamp": datetime.utcnow().isoformat(),
             "services": {
                 "qdrant": qdrant_status,
-                "gemini_llm": gemini_status,
+                "groq_llm": groq_status,
                 "nvidia_nim": nvidia_status,
                 "embedding": {
                     "status": "ok" if llm_client.get_embedding_model() else "error",
@@ -102,32 +102,32 @@ def _check_qdrant(config) -> dict:
         }
 
 
-def _check_gemini(llm_client) -> dict:
-    """Check Gemini API availability.
+def _check_groq(llm_client) -> dict:
+    """Check Groq API availability.
     
     Args:
         llm_client: LLM client instance
         
     Returns:
-        Dictionary with Gemini status
+        Dictionary with Groq status
     """
     try:
         is_available = llm_client.is_primary_available()
         if is_available:
             return {
                 "status": "ok",
-                "message": "Gemini API available"
+                "message": "Groq API available"
             }
         else:
             return {
                 "status": "error",
-                "message": "Gemini API not available"
+                "message": "Groq API not available"
             }
     except Exception as e:
-        logger.warning(f"Gemini health check failed: {e}")
+        logger.warning(f"Groq health check failed: {e}")
         return {
             "status": "error",
-            "message": f"Gemini health check failed: {str(e)}"
+            "message": f"Groq health check failed: {str(e)}"
         }
 
 

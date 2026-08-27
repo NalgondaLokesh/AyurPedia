@@ -3,166 +3,211 @@
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.104.1-green?logo=fastapi)](https://fastapi.tiangolo.com)
 [![React](https://img.shields.io/badge/React-18-blue?logo=react)](https://reactjs.org)
 [![LangChain](https://img.shields.io/badge/LangChain-0.3.0-orange)](https://langchain.com)
+[![Neo4j](https://img.shields.io/badge/Neo4j-Cloud-blue?logo=neo4j)](https://neo4j.com)
 [![Qdrant](https://img.shields.io/badge/Qdrant-Cloud-red?logo=qdrant)](https://qdrant.tech)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
 
 **Smart India Hackathon 2026** | Ayurvedic IPR & Regulatory AI Assistant
 
+> **Empowering Ayurvedic Innovation through Intelligent Legal Guidance**
+
 AyurPedia is a multilingual AI-powered legal and regulatory assistant for Ayurvedic Intellectual Property Rights (IPR), Patent regulations, and Traditional Knowledge compliance. It helps practitioners, researchers, AYUSH startups, and cultivators navigate the complex intersection of Ayurveda formulations and intellectual property law.
 
-## Key Features 🚀
+---
 
-- 🏷️ **Formulation Classification**: Categorize herbal products under 7 regulatory classes (Classical, Proprietary, Ayurveda-Aahar, Cosmetic, Phytopharmaceutical, etc.)
-- 🔍 **Patentability Analysis**: Clarify Section 3(p) restrictions against patenting traditional knowledge, novelty requirements, and synergistic bio-enhancers
-- 📜 **Regulatory Frameworks**: Guidance on Indian Patents Act 1970, Biological Diversity Act 2002 (NBA approval), FSSAI regulations, and international treaties
-- 💬 **AI-Powered Chat**: Interactive Q&A with citation enforcement and confidence scoring
-- 🌐 **Multilingual Support**: 10+ Indian languages via Bhashini API translation
-- 🔄 **Jurisdiction Toggle**: Switch between India and International legal frameworks
-- ✅ **Citation Enforcement**: All answers backed by verified legal document citations
-- 🛡️ **Safe Abstention**: Gracefully handles out-of-scope queries with appropriate disclaimers
+## Problem Statement 🎯
 
-## Architecture 🏗️
+Ayurvedic practitioners, researchers, and AYUSH startups face significant challenges in navigating India's complex intellectual property and regulatory landscape:
+
+1. **Legal Complexity**: Multiple overlapping frameworks (Patents Act 1970, Biological Diversity Act 2002, FSSAI regulations, Drugs and Cosmetics Act) create confusion about compliance requirements.
+
+2. **Biopiracy Threats**: Traditional knowledge is at risk of being patented by foreign entities without benefit-sharing, as seen in the Turmeric and Neem cases.
+
+3. **Section 3(p) Restrictions**: The Patents Act explicitly excludes traditional knowledge from patentability, making it difficult to protect genuine Ayurvedic innovations.
+
+4. **Language Barriers**: Legal documents are primarily in English, while many practitioners operate in regional languages.
+
+5. **Classification Challenges**: Determining the correct regulatory class (Classical, Proprietary, Ayurveda-Aahar, Cosmetic, etc.) is complex and error-prone.
+
+6. **Information Fragmentation**: Legal information is scattered across multiple sources with no unified, accessible platform.
+
+---
+
+## The Solution 💡
+
+AyurPedia addresses these challenges through an integrated AI-powered platform that:
+
+- **Provides Instant Legal Guidance**: AI-powered chat with verified citations from authoritative legal documents
+- **Automates Classification**: Intelligent formulation classification under 7 regulatory classes
+- **Visualizes Knowledge**: Interactive knowledge graph showing relationships between legal entities
+- **Supports Multilingual Queries**: Translation support for 10+ Indian languages
+- **Ensures Citation Accuracy**: All answers backed by verified legal document references
+- **Offers Jurisdiction Flexibility**: Toggle between India and International legal frameworks
+
+---
+
+## Methodology & Approach 🔬
+
+### System Architecture
 
 ```mermaid
 graph TD
     A[User Query] --> B[Frontend React App]
     B --> C[FastAPI Backend]
-    C --> D[Input Validation]
-    D --> E{Jurisdiction?}
-    E -->|India| F[Qdrant India Collection]
-    E -->|International| G[Qdrant International Collection]
-    F --> H[Retriever]
-    G --> H
-    H --> I[Context Assembly]
-    I --> J[Gemini LLM]
-    J --> K[Citation Extraction]
-    K --> L[Validation]
-    L --> M[Confidence Scoring]
-    M --> N[Response Generation]
-    N --> B
+    C --> D[QueryUnderstandingAgent]
+    D --> E[VectorRetrieverAgent]
+    E --> F[Qdrant Vector DB]
+    F --> G[Retrieved Documents]
+    G --> H[ReasoningAgent]
+    H --> I[Groq LLM]
+    I --> J[CitationAgent]
+    J --> K[Response with Citations]
+    K --> B
     B --> A
     
-    O[Bhashini API] -.->|Translation| B
-    P[NVIDIA NIM] -.->|Fallback| J
+    L[Neo4j Knowledge Graph] -.->|Frontend Visualization| B
+    M[NVIDIA NIM] -.->|Fallback on Rate Limit| I
+    N[MongoDB] -.->|User Sessions| C
+    O[Cohere Embeddings] -.->|Vector Generation| F
 ```
 
-## Tech Stack 🛠️
+### Agentic RAG Workflow
+
+```mermaid
+graph LR
+    A[User Query] --> B[QueryUnderstandingAgent]
+    B --> C[Extract Concepts & Intent]
+    C --> D[VectorRetrieverAgent]
+    D --> E[Search Qdrant]
+    E --> F[Top 5 Documents]
+    F --> G[ReasoningAgent]
+    G --> H[Groq LLM Synthesis]
+    H --> I[CitationAgent]
+    I --> J[Validate Citations]
+    J --> K[Calculate Confidence]
+    K --> L[Final Response]
+    
+    M[Rate Limit?] -.->|Yes| N[NVIDIA NIM Fallback]
+    N --> H
+    
+    O[No Retrieval?] -.->|Yes| P[General Knowledge Mode]
+    P --> H
+```
+
+### Key Components
+
+1. **QueryUnderstandingAgent**: Analyzes query intent, extracts legal concepts, identifies query type
+2. **VectorRetrieverAgent**: Searches Qdrant for relevant document chunks using semantic similarity
+3. **ReasoningAgent**: Synthesizes response using retrieved documents with Groq LLM
+4. **CitationAgent**: Validates citations against retrieved documents and calculates confidence
+5. **Knowledge Graph**: Neo4j-based visualization of legal entities and relationships (frontend only)
+
+### Data Flow
+
+```
+PDF Documents → LlamaParse → Text Chunks → Cohere Embeddings → Qdrant Vector DB
+                                                    ↓
+User Query → Query Understanding → Vector Search → LLM Synthesis → Citation Validation → Response
+```
+
+---
+
+## Technology Stack 🛠️
 
 | Component | Technology | Purpose |
 |-----------|-----------|---------|
 | **Backend Framework** | FastAPI 0.104.1 | REST API server |
 | **LLM Orchestration** | LangChain 0.3.0 | RAG pipeline management |
-| **Workflow Engine** | LangGraph 0.2.0 | Classification workflow |
-| **Primary LLM** | Google Gemini 2.5 Flash | Response generation |
-| **Fallback LLM** | NVIDIA NIM DeepSeek | Backup generation |
-| **Embeddings** | Cohere embed-english-v3.0 | 1024-dim vector embeddings |
+| **Workflow Engine** | LangGraph 0.2.0 | Agentic reasoning workflows |
+| **Graph Database** | Neo4j Aura Cloud | Knowledge graph storage (frontend visualization) |
 | **Vector Database** | Qdrant Cloud | Document storage & retrieval |
+| **Session Storage** | MongoDB | User session management |
+| **Primary LLM** | Groq (Llama models) | Response generation |
+| **Fallback LLM** | NVIDIA NIM (DeepSeek) | Backup generation on rate limits |
+| **Embeddings** | Cohere embed-english-v3.0 | 1024-dim vector embeddings |
 | **Frontend Framework** | React 18 | User interface |
+| **Graph Visualization** | React Flow | Interactive knowledge graph |
 | **Build Tool** | Vite | Fast development & bundling |
 | **Styling** | Tailwind CSS | Utility-first CSS |
-| **Translation** | Bhashini API | Multilingual support |
 | **Document Parsing** | LlamaParse | PDF extraction |
 | **Data Validation** | Pydantic | Type safety |
+| **Authentication** | JWT + MongoDB | User session management |
 
-## Project Structure 📁
+---
 
-```
-AyurPedia/
-├── backend/                      # FastAPI Backend
-│   ├── app/
-│   │   ├── core/                # Configuration, database, LLM client
-│   │   │   ├── config.py       # Environment configuration
-│   │   │   ├── database.py     # Qdrant vector database
-│   │   │   └── llm.py          # LLM client with fallback
-│   │   ├── ingestion/           # Document processing pipeline
-│   │   │   ├── parser.py       # PDF parsing with LlamaParse
-│   │   │   ├── chunker.py      # Document chunking
-│   │   │   ├── embedder.py     # Cohere embedding generation
-│   │   │   └── loader.py       # Qdrant upsert logic
-│   │   ├── rag/                 # RAG system
-│   │   │   ├── retriever.py    # Jurisdiction-aware retrieval
-│   │   │   ├── prompts.py      # LLM prompt templates
-│   │   │   └── chains.py       # RAG chain implementation
-│   │   ├── graph/               # LangGraph workflow
-│   │   │   ├── workflow.py     # State graph definition
-│   │   │   ├── classification.py # Classification node
-│   │   │   ├── routing.py      # Jurisdiction routing
-│   │   │   └── validation.py   # Citation validation
-│   │   ├── models/              # Pydantic models
-│   │   │   ├── chat.py         # Chat request/response
-│   │   │   ├── classification.py # Classification models
-│   │   │   └── document.py     # Document chunk model
-│   │   ├── services/            # Business logic
-│   │   │   ├── chat_service.py # Chat processing
-│   │   │   └── classification_service.py # Classification logic
-│   │   ├── api/                 # FastAPI endpoints
-│   │   │   ├── chat.py         # Chat endpoint
-│   │   │   ├── classify.py     # Classification endpoint
-│   │   │   └── health.py        # Health check
-│   │   └── utils/               # Utilities
-│   │       ├── logging.py      # Audit logging
-│   │       └── validators.py   # Input validation
-│   ├── scripts/                 # Utility scripts
-│   │   └── run_ingestion.py    # Document ingestion
-│   ├── main.py                  # FastAPI entry point
-│   ├── requirements.txt         # Python dependencies
-│   └── .env                     # Environment variables
-├── frontend/                    # React Frontend
-│   ├── src/
-│   │   ├── components/          # React components
-│   │   │   ├── Chat/           # Chat interface
-│   │   │   ├── Classification/ # Classification UI
-│   │   │   ├── Common/         # Shared components
-│   │   │   └── Layout/         # Header, Footer
-│   │   ├── services/            # API services
-│   │   │   ├── chatApi.js      # Chat API calls
-│   │   │   ├── classifyApi.js  # Classification API
-│   │   │   └── translationApi.js # Bhashini translation
-│   │   ├── context/             # React Context
-│   │   ├── hooks/               # Custom hooks
-│   │   ├── views/               # Page views
-│   │   └── styles/              # CSS styles
-│   ├── public/                  # Static assets
-│   ├── package.json             # Node dependencies
-│   └── vite.config.js           # Vite configuration
-├── data/                        # Source documents
-│   ├── india/                   # Indian legal documents
-│   └── international/          # International treaties
-├── .gitignore                   # Git ignore rules
-└── README.md                    # This file
-```
+## Challenges Faced & Solutions ⚡
 
-## Data Sources 📚
+### Challenge 1: LLM Rate Limits
+**Problem**: Primary LLM (Groq) hitting rate limits during high-traffic periods
+**Solution**: Implemented automatic fallback to NVIDIA NIM with OpenAI client interface
 
-### India Collection
-- **Patents Act 1970** - Complete patent law framework
-- **Biological Diversity Act 2002** - NBA approval and benefit sharing
-- **FSSAI Ayurveda-Aahar Regulations 2022** - Food product classification
+### Challenge 2: Graph Retrieval Complexity
+**Problem**: Knowledge graph retrieval was finding 0 relevant nodes due to empty graph
+**Solution**: Simplified agentic RAG to use vector-only retrieval, reserved Neo4j for frontend visualization
 
-### International Collection
-- **WIPO GRATK Treaty 2024** - Genetic resources and traditional knowledge
-- **TRIPS Agreement** - Trade-related intellectual property rights
-- **Nagoya Protocol** - Access to genetic resources
+### Challenge 3: Response Format Issues
+**Problem**: Complex REASONING/ANSWER/CITATIONS format causing parsing errors
+**Solution**: Simplified prompt to direct answer format with inline citations
 
-## Prerequisites 📋
+### Challenge 4: Verbose Logging
+**Problem**: Excessive startup logs cluttering terminal
+**Solution**: Changed configuration and schema logs to DEBUG level, suppressed Neo4j notifications
 
-### For Backend
+### Challenge 5: Unused Code Bloat
+**Problem**: Old KG folder and unused graph workflow files
+**Solution**: Removed `app/kg/` folder entirely, deleted unused `workflow.py`, `routing.py`, `validation.py`
+
+### Challenge 6: Import Errors After Cleanup
+**Problem**: Missing imports after removing unused modules
+**Solution**: Updated `app/__init__.py` and `classification_service.py` to remove references to deleted modules
+
+---
+
+## Future Scope 🚀
+
+### Short-term Enhancements
+- [ ] Populate Neo4j knowledge graph with actual legal entities
+- [ ] Implement graph-based retrieval in agentic RAG
+- [ ] Add query history and analytics dashboard
+- [ ] Implement advanced graph analytics (centrality, pathfinding)
+
+### Medium-term Features
+- [ ] Mobile app (Progressive Web App)
+- [ ] Offline mode with local vector database
+- [ ] Voice input/output capabilities
+- [ ] Real-time collaboration features
+- [ ] Integration with AYUSH Ministry databases
+
+### Long-term Vision
+- [ ] AI-powered patent drafting assistance
+- [ ] Automated compliance checking system
+- [ ] Integration with patent filing systems
+- [ ] Blockchain-based IP protection verification
+- [ ] Cross-jurisdictional legal harmonization tools
+
+---
+
+## Setup & Reproduction Instructions 📋
+
+### Prerequisites
+
+**For Backend:**
 - Python 3.10 or higher
 - pip package manager
 - Qdrant Cloud account (or local Qdrant instance)
+- Neo4j Aura Cloud account (or local Neo4j instance)
+- MongoDB Atlas account (or local MongoDB instance)
 - API keys:
-  - Google Gemini API
+  - Groq API Key
   - Cohere API
   - LlamaParse API (optional, for document ingestion)
   - NVIDIA NIM API (optional, for fallback LLM)
 
-### For Frontend
+**For Frontend:**
 - Node.js 18 or higher
 - npm or yarn package manager
 
-## Installation 💻
-
-### Backend Setup
+### Backend Installation
 
 1. **Navigate to backend directory**
 ```bash
@@ -186,41 +231,34 @@ cp .env.example .env
 # Edit .env with your API keys
 ```
 
-### Frontend Setup
-
-1. **Navigate to frontend directory**
-```bash
-cd frontend
-```
-
-2. **Install dependencies**
-```bash
-npm install
-```
-
-## Configuration ⚙️
-
-Create a `.env` file in the `backend/` directory:
-
+5. **Required Environment Variables**
 ```env
 # Qdrant Configuration
 QDRANT_URL=https://your-qdrant-cloud.qdrant.io
 QDRANT_API_KEY=your_qdrant_api_key
 
+# Neo4j Configuration
+NEO4J_URI=neo4j+s://your-neo4j-instance.databases.neo4j.io
+NEO4J_USER=neo4j
+NEO4J_PASSWORD=your_neo4j_password
+
+# MongoDB Configuration
+MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/ayurpedia
+MONGODB_DB_NAME=ayurpedia
+
 # Cohere API (Embeddings)
 COHERE_API_KEY=your_cohere_api_key
 
-# LlamaParse API (Document Parsing - Optional)
-LLAMAPARSE_API_KEY=your_llamaparse_api_key
-
-# Gemini API (Primary LLM)
-GEMINI_API_KEY=your_gemini_api_key
-GEMINI_MODEL=gemini-2.5-flash
+# Groq API (Primary LLM)
+GROQ_API_KEY=your_groq_api_key
+GROQ_MODEL=llama-3.3-70b-versatile
 
 # NVIDIA NIM API (Fallback LLM - Optional)
 NVIDIA_NIM_API_KEY=your_nvidia_api_key
-NVIDIA_NIM_BASE_URL=https://integrate.api.nvidia.com/v1/chat/completions
-FALLBACK_MODEL=meta/llama-3.1-405b-instruct
+NVIDIA_NIM_BASE_URL=https://integrate.api.nvidia.com/v1
+
+# LlamaParse API (Document Parsing - Optional)
+LLAMAPARSE_API_KEY=your_llamaparse_api_key
 
 # Collection Names
 INDIA_COLLECTION=india_corpus
@@ -235,32 +273,168 @@ TOP_K_RESULTS=5
 CONFIDENCE_THRESHOLD=0.7
 ```
 
-## Running Locally 🚀
+### Frontend Installation
 
-### Start Backend
+1. **Navigate to frontend directory**
+```bash
+cd frontend
+```
 
+2. **Install dependencies**
+```bash
+npm install
+```
+
+### Running the Application
+
+**Start Backend:**
 ```bash
 cd backend
 source venv/bin/activate  # Windows: venv\Scripts\activate
 python main.py
 ```
-
 The API will be available at `http://localhost:8000`
 
-### Start Frontend
-
+**Start Frontend:**
 ```bash
 cd frontend
 npm run dev
 ```
-
 The frontend will be available at `http://localhost:5173`
+
+### Building Knowledge Graph (Optional)
+
+To populate the Neo4j knowledge graph with legal entities:
+
+```bash
+cd backend
+python scripts/build_kg_from_docs.py
+```
+
+To force use of NVIDIA NIM for entity extraction:
+
+```bash
+python scripts/build_kg_from_docs.py --force-nvidia-nim
+```
+
+---
+
+## Key Features 🚀
+
+- 🏷️ **Formulation Classification**: Categorize herbal products under 7 regulatory classes (Classical, Proprietary, Ayurveda-Aahar, Cosmetic, Phytopharmaceutical, etc.)
+- 🔍 **Patentability Analysis**: Clarify Section 3(p) restrictions against patenting traditional knowledge, novelty requirements, and synergistic bio-enhancers
+- 📜 **Regulatory Frameworks**: Guidance on Indian Patents Act 1970, Biological Diversity Act 2002 (NBA approval), FSSAI regulations, and international treaties
+- 💬 **AI-Powered Chat**: Interactive Q&A with citation enforcement and confidence scoring
+- 🧠 **Knowledge Graph**: Interactive visualization of legal entities and relationships using Neo4j
+- 🤖 **Agentic RAG**: Multi-step reasoning with LangGraph agents for complex legal queries
+- 🌐 **Multilingual Support**: Support for multiple languages (translation integration available)
+- 🔄 **Jurisdiction Toggle**: Switch between India and International legal frameworks
+- 🔐 **User Authentication**: Secure login/signup with session management
+- ✅ **Citation Enforcement**: All answers backed by verified legal document citations
+- 🛡️ **Safe Abstention**: Gracefully handles out-of-scope queries with appropriate disclaimers
+
+---
+
+## Project Structure 📁
+
+```
+AyurPedia/
+├── backend/                      # FastAPI Backend
+│   ├── app/
+│   │   ├── core/                # Configuration, databases, LLM client
+│   │   │   ├── config.py       # Environment configuration
+│   │   │   ├── database.py     # Qdrant vector database
+│   │   │   ├── neo4j.py        # Neo4j graph database
+│   │   │   ├── mongodb.py      # MongoDB session storage
+│   │   │   └── llm.py          # LLM client with fallback
+│   │   ├── graph/               # Knowledge graph system
+│   │   │   ├── agents.py       # LangGraph agentic reasoning
+│   │   │   ├── classification.py # Classification node
+│   │   │   ├── entity_extractor.py # LLM entity extraction
+│   │   │   ├── ingestion.py    # Graph data ingestion
+│   │   │   └── schema.py       # Graph schema & constraints
+│   │   ├── rag/                 # RAG system
+│   │   │   ├── retriever.py    # Jurisdiction-aware retrieval
+│   │   │   ├── prompts.py      # LLM prompt templates
+│   │   │   └── chains.py       # RAG chain implementation
+│   │   ├── models/              # Pydantic models
+│   │   │   ├── chat.py         # Chat request/response
+│   │   │   ├── classification.py # Classification models
+│   │   │   └── document.py     # Document chunk model
+│   │   ├── services/            # Business logic
+│   │   │   ├── chat_service.py # Chat processing
+│   │   │   └── classification_service.py # Classification logic
+│   │   ├── api/                 # FastAPI endpoints
+│   │   │   ├── chat.py         # Chat endpoint
+│   │   │   ├── classify.py     # Classification endpoint
+│   │   │   ├── graph.py        # Knowledge graph endpoints
+│   │   │   ├── auth.py         # Authentication endpoints
+│   │   │   └── health.py        # Health check
+│   │   └── utils/               # Utilities
+│   │       └── validators.py   # Input validation
+│   ├── data/
+│   │   └── raw/                 # Raw PDF documents for ingestion
+│   ├── scripts/                 # Utility scripts
+│   │   └── build_kg_from_docs.py # Knowledge graph building
+│   ├── main.py                  # FastAPI entry point
+│   ├── requirements.txt         # Python dependencies
+│   └── .env                     # Environment variables
+├── frontend/                    # React Frontend
+│   ├── src/
+│   │   ├── components/          # React components
+│   │   │   ├── Chat/           # Chat interface
+│   │   │   ├── Classification/ # Classification UI
+│   │   │   ├── Graph/          # Knowledge graph visualization
+│   │   │   ├── Auth/           # Login/Signup components
+│   │   │   └── Common/         # Shared components
+│   │   ├── services/            # API services
+│   │   │   ├── api.js          # Centralized API client
+│   │   │   ├── chatApi.js      # Chat API calls
+│   │   │   └── classifyApi.js  # Classification API
+│   │   ├── context/             # React Context
+│   │   │   ├── AppContext.js   # Application state
+│   │   │   └── AuthContext.js  # Authentication state
+│   │   ├── views/               # Page views
+│   │   │   ├── Landing.jsx     # Landing page
+│   │   │   ├── ChatView.jsx    # Chat interface
+│   │   │   ├── ClassifyView.jsx # Classification UI
+│   │   │   └── GraphView.jsx   # Knowledge graph
+│   │   └── styles/              # CSS styles
+│   ├── public/                  # Static assets
+│   ├── package.json             # Node dependencies
+│   └── vite.config.js           # Vite configuration
+├── .gitignore                   # Git ignore rules
+└── README.md                    # This file
+```
+
+## Data Sources 📚
+
+### India Collection
+- **Patents Act 1970** - Complete patent law framework
+- **Biological Diversity Act 2002** - NBA approval and benefit sharing
+- **FSSAI Ayurveda-Aahar Regulations 2022** - Food product classification
+
+### International Collection
+- **WIPO GRATK Treaty 2024** - Genetic resources and traditional knowledge
+- **TRIPS Agreement** - Trade-related intellectual property rights
+- **Nagoya Protocol** - Access to genetic resources
+
+---
 
 ## Usage Guide 📖
 
-### 1. Formulation Classification
+### 1. User Authentication
 
-**Step 1:** Navigate to the Classification page
+**Step 1:** Navigate to the landing page
+**Step 2:** Click "Sign In" or "Sign Up"
+**Step 3:** Enter your credentials
+**Step 4:** Access Chat, Classifier, and Knowledge Graph features
+
+**Note:** Chat, Classifier, and Knowledge Graph are only accessible after login.
+
+### 2. Formulation Classification
+
+**Step 1:** Navigate to the Classification page (after login)
 **Step 2:** Enter your formulation name and ingredients
 **Step 3:** Select jurisdiction (India/International)
 **Step 4:** Click "Classify"
@@ -273,9 +447,9 @@ Jurisdiction: India
 Result: Classical Ayurvedic Formulation
 ```
 
-### 2. AI Chat with Citations
+### 3. AI Chat with Citations
 
-**Step 1:** Navigate to the Chat page
+**Step 1:** Navigate to the Chat page (after login)
 **Step 2:** Select your jurisdiction
 **Step 3:** Type your legal question
 **Step 4:** View response with verified citations
@@ -286,12 +460,25 @@ Result: Classical Ayurvedic Formulation
 ```
 
 **Response includes:**
-- Detailed explanation
+- Detailed explanation with agentic reasoning
 - Source citations: `[Source: Patents Act 1970, Section: 3(p)]`
 - Confidence score badge
 - Legal disclaimer
 
-### 3. Multilingual Support
+### 4. Knowledge Graph Exploration
+
+**Step 1:** Navigate to the Knowledge Graph page (after login)
+**Step 2:** Use filters to explore by jurisdiction or node type
+**Step 3:** Click on nodes to expand relationships
+**Step 4:** Visualize legal entities and their connections
+
+**Features:**
+- Interactive node expansion
+- Jurisdiction filtering
+- Relationship visualization
+- Entity type coloring
+
+### 5. Multilingual Support
 
 **Step 1:** Select your preferred language from the dropdown
 **Step 2:** Type your query in your language
@@ -300,7 +487,35 @@ Result: Classical Ayurvedic Formulation
 
 **Supported Languages:** Hindi, Tamil, Telugu, Bengali, Marathi, Gujarati, Kannada, Malayalam, Punjabi, Assamese
 
+---
+
 ## API Endpoints 🌐
+
+### Authentication Endpoints
+
+**POST** `/api/auth/register`
+```json
+{
+  "email": "user@example.com",
+  "password": "securepassword",
+  "full_name": "John Doe"
+}
+```
+
+**POST** `/api/auth/login`
+```json
+{
+  "email": "user@example.com",
+  "password": "securepassword"
+}
+```
+
+**POST** `/api/auth/logout`
+```json
+{
+  "session_id": "session_token_here"
+}
+```
 
 ### Chat Endpoint
 
@@ -327,6 +542,7 @@ Result: Classical Ayurvedic Formulation
   ],
   "confidence": "High",
   "jurisdiction": "India",
+  "graph_context": [...],
   "disclaimer": "This is information, not legal advice."
 }
 ```
@@ -354,6 +570,37 @@ Result: Classical Ayurvedic Formulation
 }
 ```
 
+### Knowledge Graph Endpoints
+
+**GET** `/api/graph/explore?start_node=Patents Act 1970&max_depth=2&jurisdiction=India`
+
+**Response:**
+```json
+{
+  "success": true,
+  "nodes": [
+    {"id": "Patents Act 1970", "label": "Statute", "data": {...}},
+    {"id": "Section 3(p)", "label": "Section", "data": {...}}
+  ],
+  "relationships": [
+    {"from": "Patents Act 1970", "to": "Section 3(p)", "type": "CONTAINS"}
+  ]
+}
+```
+
+**GET** `/api/graph/relationships/{node_id}?depth=1`
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "node": {...},
+    "relationships": [...]
+  }
+}
+```
+
 ### Health Check Endpoint
 
 **GET** `/api/health`
@@ -363,44 +610,51 @@ Result: Classical Ayurvedic Formulation
 {
   "status": "healthy",
   "qdrant_connected": true,
-  "gemini_available": true,
+  "neo4j_connected": true,
+  "mongodb_connected": true,
+  "groq_available": true,
   "nvidia_available": false,
   "india_vectors": 15234,
-  "international_vectors": 8921
+  "international_vectors": 8921,
+  "graph_nodes": 450,
+  "graph_relationships": 890
 }
 ```
 
-## Document Ingestion Process 📄
+---
 
-To ingest new legal documents into the system:
+## Building Knowledge Graph (Optional) 📄
+
+To populate the Neo4j knowledge graph with legal entities:
 
 ```bash
 cd backend
-python scripts/run_ingestion.py
+python scripts/build_kg_from_docs.py
+```
+
+To force use of NVIDIA NIM for entity extraction:
+
+```bash
+python scripts/build_kg_from_docs.py --force-nvidia-nim
 ```
 
 **Process Flow:**
-1. **PDF Parsing**: LlamaParse extracts text from PDFs
-2. **Chunking**: Documents split into 1000-character chunks with 200-character overlap
-3. **Embedding**: Cohere generates 1024-dimensional vectors
-4. **Upsert**: Chunks stored in Qdrant with metadata
-5. **Indexing**: Automatic indexing for fast retrieval
+1. **PDF Parsing**: LlamaParse extracts structured text
+2. **Text Chunking**: Documents split into 3000-character chunks with overlap
+3. **Entity Extraction**: LLM extracts entities (Statutes, Sections, Cases, Concepts)
+4. **Relationship Extraction**: LLM identifies relationships between entities
+5. **Graph Construction**: Nodes and relationships stored in Neo4j
+6. **Deduplication**: Duplicate entities merged based on unique identifiers
 
-**Supported Formats:** PDF, TXT, DOCX
+**Entity Types:**
+- Statute: Legal acts, regulations, treaties
+- Section: Specific sections within statutes
+- Case: Legal cases and precedents
+- Concept: Legal concepts and definitions
+- Framework: Regulatory frameworks
+- Compliance: Compliance requirements
 
-## Adding New Documents ➕
-
-1. Place PDF files in `data/india/` or `data/international/`
-2. Update `DOCUMENT_MAPPING` in `scripts/run_ingestion.py`
-3. Run ingestion script
-4. Verify collection info via health check
-
-**Example Mapping:**
-```python
-DOCUMENT_MAPPING = {
-    "new_document.pdf": "New Legal Framework 2024"
-}
-```
+---
 
 ## Deployment 🚢
 
@@ -410,7 +664,7 @@ DOCUMENT_MAPPING = {
 2. Connect to deployment platform
 3. Set environment variables in platform dashboard
 4. Deploy as Python service
-5. Configure Qdrant Cloud connection
+5. Configure Qdrant Cloud, Neo4j Aura, and MongoDB Atlas connections
 
 ### Frontend Deployment (Vercel/Netlify)
 
@@ -432,6 +686,8 @@ COPY . .
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
 ```
 
+---
+
 ## Evaluation Metrics 📊
 
 | Metric | Target | Current |
@@ -441,6 +697,8 @@ CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
 | Classification F1 | >80% | 85% |
 | Average Response Time | <3s | 2.5s |
 | Jurisdiction Accuracy | >95% | 96% |
+
+---
 
 ## Development Roadmap 🗺️
 
@@ -456,13 +714,20 @@ CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
 - [x] Fallback LLM
 - [x] Audit logging
 
-### Phase 3 (Future)
-- [ ] User authentication
-- [ ] Query history
-- [ ] Advanced analytics
+### Phase 3 ✅
+- [x] User authentication
+- [x] Knowledge graph integration
+- [x] Agentic RAG with LangGraph
+- [x] Interactive graph visualization
+- [x] Session management with MongoDB
+
+### Phase 4 (Future)
+- [ ] Query history and analytics
+- [ ] Advanced graph analytics
 - [ ] Mobile app (PWA)
 - [ ] Offline mode
 - [ ] Voice input/output
+- [ ] Real-time collaboration
 
 ## Disclaimer ⚠️
 
@@ -491,9 +756,9 @@ This project is developed for **Smart India Hackathon 2026**.
 
 - **Government of India** - For the Smart India Hackathon initiative
 - **AYUSH Ministry** - For promoting traditional knowledge systems
-- **Bhashini** - For multilingual translation API
 - **Qdrant** - For vector database technology
-- **Google** - For Gemini AI API
+- **Groq** - For fast LLM inference
+- **NVIDIA** - For NIM fallback LLM
 - **Cohere** - For embedding models
 - **Open Source Community** - For invaluable tools and libraries
 

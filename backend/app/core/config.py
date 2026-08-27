@@ -4,7 +4,10 @@ Loads and validates environment variables from .env file.
 """
 
 import os
+import logging
 from dotenv import load_dotenv
+
+logger = logging.getLogger(__name__)
 
 
 class Config:
@@ -23,7 +26,7 @@ class Config:
             'COHERE_API_KEY',
             'QDRANT_URL',
             'QDRANT_API_KEY',
-            'GEMINI_API_KEY'
+            'GROQ_API_KEY'
         ]
         
         missing_vars = [var for var in required_vars if not os.getenv(var)]
@@ -54,14 +57,29 @@ class Config:
         return os.getenv('QDRANT_API_KEY', '')
     
     @property
-    def chunk_size(self) -> int:
-        """Get chunk size for text splitting."""
-        return int(os.getenv('CHUNK_SIZE', '1000'))
+    def parent_chunk_size(self) -> int:
+        """Get parent chunk size for hierarchical chunking."""
+        return int(os.getenv('PARENT_CHUNK_SIZE', '2000'))
+    
+    @property
+    def child_chunk_size(self) -> int:
+        """Get child chunk size for hierarchical chunking."""
+        return int(os.getenv('CHILD_CHUNK_SIZE', '400'))
     
     @property
     def chunk_overlap(self) -> int:
         """Get chunk overlap for text splitting."""
-        return int(os.getenv('CHUNK_OVERLAP', '200'))
+        return int(os.getenv('CHUNK_OVERLAP', '100'))
+    
+    @property
+    def parent_overlap(self) -> int:
+        """Get parent chunk overlap for hierarchical chunking."""
+        return int(os.getenv('PARENT_OVERLAP', '200'))
+    
+    @property
+    def chunk_size(self) -> int:
+        """Get chunk size for text splitting (legacy, kept for compatibility)."""
+        return int(os.getenv('CHUNK_SIZE', '800'))
     
     @property
     def batch_size(self) -> int:
@@ -94,6 +112,16 @@ class Config:
         return os.getenv('GEMINI_MODEL', 'gemini-2.5-flash')
     
     @property
+    def groq_api_key(self) -> str:
+        """Get Groq API key."""
+        return os.getenv('GROQ_API_KEY', '')
+    
+    @property
+    def groq_model(self) -> str:
+        """Get Groq model name."""
+        return os.getenv('GROQ_MODEL', 'llama-3.3-70b-versatile')
+    
+    @property
     def nvidia_nim_api_key(self) -> str:
         """Get NVIDIA NIM API key."""
         return os.getenv('NVIDIA_NIM_API_KEY', '')
@@ -101,7 +129,7 @@ class Config:
     @property
     def nvidia_nim_base_url(self) -> str:
         """Get NVIDIA NIM base URL."""
-        return os.getenv('NVIDIA_NIM_BASE_URL', 'https://api.nvidia.com/v1')
+        return os.getenv('NVIDIA_NIM_BASE_URL', 'https://integrate.api.nvidia.com/v1')
     
     @property
     def fallback_model(self) -> str:
@@ -111,7 +139,7 @@ class Config:
     @property
     def top_k_results(self) -> int:
         """Get top-k results for retrieval."""
-        return int(os.getenv('TOP_K_RESULTS', '5'))
+        return int(os.getenv('TOP_K_RESULTS', '15'))
     
     @property
     def confidence_threshold(self) -> float:
@@ -149,11 +177,6 @@ class Config:
         return int(os.getenv('JWT_REFRESH_TOKEN_EXPIRE_DAYS', '7'))
     
     @property
-    def redis_url(self) -> str:
-        """Get Redis connection URL."""
-        return os.getenv('REDIS_URL', 'redis://localhost:6379')
-    
-    @property
     def sentry_dsn(self) -> str:
         """Get Sentry DSN for error tracking."""
         return os.getenv('SENTRY_DSN', '')
@@ -168,28 +191,48 @@ class Config:
         """Get frontend URL for CORS."""
         return os.getenv('FRONTEND_URL', 'http://localhost:5173')
     
+    @property
+    def neo4j_uri(self) -> str:
+        """Get Neo4j connection URI."""
+        return os.getenv('NEO4J_URI', 'neo4j+s://localhost:7687')
+    
+    @property
+    def neo4j_user(self) -> str:
+        """Get Neo4j username."""
+        return os.getenv('NEO4J_USER', 'neo4j')
+    
+    @property
+    def neo4j_password(self) -> str:
+        """Get Neo4j password."""
+        return os.getenv('NEO4J_PASSWORD', 'password')
+    
     def _print_config(self) -> None:
-        """Print loaded configuration for debugging (without exposing keys)."""
-        print("Configuration loaded successfully:")
-        print(f"  - LlamaParse API Key: {'*' * 20 if self.llamaparse_api_key else 'NOT SET'}")
-        print(f"  - Cohere API Key: {'*' * 20 if self.cohere_api_key else 'NOT SET'}")
-        print(f"  - Gemini API Key: {'*' * 20 if self.gemini_api_key else 'NOT SET'}")
-        print(f"  - Gemini Model: {self.gemini_model}")
-        print(f"  - NVIDIA NIM API Key: {'*' * 20 if self.nvidia_nim_api_key else 'NOT SET'}")
-        print(f"  - NVIDIA NIM Base URL: {self.nvidia_nim_base_url}")
-        print(f"  - Fallback Model: {self.fallback_model}")
-        print(f"  - Qdrant URL: {self.qdrant_url[:30]}...{self.qdrant_url[-10:] if len(self.qdrant_url) > 40 else self.qdrant_url}")
-        print(f"  - Qdrant API Key: {'*' * 20 if self.qdrant_api_key else 'NOT SET'}")
-        print(f"  - MongoDB URI: {'*' * 20 if self.mongodb_uri else 'NOT SET (In-memory fallback)'}")
-        print(f"  - MongoDB DB Name: {self.mongodb_db_name}")
-        print(f"  - Chunk Size: {self.chunk_size}")
-        print(f"  - Chunk Overlap: {self.chunk_overlap}")
-        print(f"  - Batch Size: {self.batch_size}")
-        print(f"  - Embedding Dimension: {self.embedding_dimension}")
-        print(f"  - Top K Results: {self.top_k_results}")
-        print(f"  - Confidence Threshold: {self.confidence_threshold}")
-        print(f"  - India Collection: {self.india_collection}")
-        print(f"  - International Collection: {self.international_collection}")
+        """Log loaded configuration for debugging (without exposing keys)."""
+        logger.debug("Configuration loaded successfully:")
+        logger.debug(f"  - LlamaParse API Key: {'*' * 20 if self.llamaparse_api_key else 'NOT SET'}")
+        logger.debug(f"  - Cohere API Key: {'*' * 20 if self.cohere_api_key else 'NOT SET'}")
+        logger.debug(f"  - Groq API Key: {'*' * 20 if self.groq_api_key else 'NOT SET'}")
+        logger.debug(f"  - Groq Model: {self.groq_model}")
+        logger.debug(f"  - Gemini API Key: {'*' * 20 if self.gemini_api_key else 'NOT SET'}")
+        logger.debug(f"  - Gemini Model: {self.gemini_model}")
+        logger.debug(f"  - NVIDIA NIM API Key: {'*' * 20 if self.nvidia_nim_api_key else 'NOT SET'}")
+        logger.debug(f"  - NVIDIA NIM Base URL: {self.nvidia_nim_base_url}")
+        logger.debug(f"  - Fallback Model: {self.fallback_model}")
+        logger.debug(f"  - Qdrant URL: {self.qdrant_url[:30]}...{self.qdrant_url[-10:] if len(self.qdrant_url) > 40 else self.qdrant_url}")
+        logger.debug(f"  - Qdrant API Key: {'*' * 20 if self.qdrant_api_key else 'NOT SET'}")
+        logger.debug(f"  - MongoDB URI: {'*' * 20 if self.mongodb_uri else 'NOT SET (In-memory fallback)'}")
+        logger.debug(f"  - MongoDB DB Name: {self.mongodb_db_name}")
+        logger.debug(f"  - Chunk Size: {self.chunk_size}")
+        logger.debug(f"  - Chunk Overlap: {self.chunk_overlap}")
+        logger.debug(f"  - Batch Size: {self.batch_size}")
+        logger.debug(f"  - Embedding Dimension: {self.embedding_dimension}")
+        logger.debug(f"  - Top K Results: {self.top_k_results}")
+        logger.debug(f"  - Confidence Threshold: {self.confidence_threshold}")
+        logger.debug(f"  - India Collection: {self.india_collection}")
+        logger.debug(f"  - International Collection: {self.international_collection}")
+        logger.debug(f"  - Neo4j URI: {self.neo4j_uri}")
+        logger.debug(f"  - Neo4j User: {self.neo4j_user}")
+        logger.debug(f"  - Neo4j Password: {'*' * 10 if self.neo4j_password else 'NOT SET'}")
 
 
 # Global configuration instance (lazy loaded)

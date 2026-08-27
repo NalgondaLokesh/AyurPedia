@@ -9,22 +9,20 @@ from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from datetime import datetime
+import json
 
 from app.core.config import get_config
 from app.core.database import QdrantDB
 from app.core.llm import get_llm_client
 from app.core.mongodb import get_mongodb
-from app.core.redis import get_redis
 from app.core.rate_limit import get_rate_limiter
 from app.core.sentry import init_sentry
+from app.core.neo4j import get_neo4j
 from app.rag.retriever import Retriever
-from app.rag.chains import RAGChain
-from app.graph.classification import ClassificationNode
+from app.graph.agents import get_agentic_rag
 from app.api.chat import set_chat_service
-from app.api.classify import set_classification_service
-from app.api import chat_router, classify_router, health_router, conversations_router, facilitator_router, auth_router, conversations_auth_router
+from app.api import chat_router, health_router, conversations_router, facilitator_router, auth_router, conversations_auth_router, classify_router
 from app.services.chat_service import ChatService
-from app.services.classification_service import ClassificationService
 
 
 # Configure logging
@@ -40,7 +38,6 @@ qdrant_db = None
 llm_client = None
 retriever = None
 rag_chain = None
-classification_node = None
 
 
 @asynccontextmanager
@@ -50,7 +47,7 @@ async def lifespan(app: FastAPI):
     Args:
         app: FastAPI application instance
     """
-    global config, qdrant_db, llm_client, retriever, rag_chain, classification_node
+    global config, qdrant_db, llm_client, retriever, rag_chain
     
     # Startup
     logger.info("Starting AyurPedia Phase 2 Backend...")
@@ -74,13 +71,13 @@ async def lifespan(app: FastAPI):
         else:
             print("[OK] MongoDB (in-memory mode ready)")
         
-        # Initialize Redis
-        redis_client = get_redis()
-        redis_ok = await redis_client.connect()
-        if redis_ok:
-            print("[OK] Redis connected (caching enabled)")
+        # Initialize Neo4j
+        neo4j_db = get_neo4j()
+        neo4j_ok = await neo4j_db.connect()
+        if neo4j_ok:
+            print("[OK] Neo4j connected (knowledge graph enabled)")
         else:
-            print("[OK] Redis (running without caching)")
+            print("[OK] Neo4j (running without knowledge graph)")
         
         # Initialize Qdrant database
         qdrant_db = QdrantDB(
@@ -101,38 +98,37 @@ async def lifespan(app: FastAPI):
         
         # Initialize LLM client
         llm_client = get_llm_client()
-        print(f"[OK] Gemini LLM initialized ({config.gemini_model})")
+        print(f"[OK] Groq LLM initialized ({config.groq_model})")
         
         # Initialize retriever
         retriever = Retriever(qdrant_db, top_k=config.top_k_results)
         print(f"[OK] Retriever initialized (top_k={config.top_k_results})")
         
-        # Initialize RAG chain
-        rag_chain = RAGChain(llm_client.get_llm_with_fallback(), retriever)
-        print("[OK] RAG chain created")
+        # Initialize agentic RAG (always available, with or without Neo4j)
+        try:
+            agentic_rag = get_agentic_rag(retriever)
+            print("[OK] Agentic RAG workflow initialized")
+        except Exception as e:
+            logger.error(f"Failed to initialize agentic RAG: {e}")
+            raise
         
-        # Initialize classification node
-        classification_node = ClassificationNode(llm_client.get_llm_with_fallback())
-        print("[OK] Classification node created")
-        
-        # Initialize services
-        chat_service = ChatService(rag_chain)
-        classification_service = ClassificationService(classification_node)
+        chat_service = ChatService(agentic_rag)
         
         # Set services in API modules
         set_chat_service(chat_service)
-        set_classification_service(classification_service)
         
         print("\nAPI Endpoints:")
-        print("  POST /api/classify             - Formulation classification")
         print("  POST /api/chat                 - AI assistant chat with citations")
         print("  GET  /api/conversations        - List session history")
-        print("  GET  /api/conversations/{id}   - Fetch session messages")
         print("  POST /api/facilitator/request  - Submit human facilitator ticket")
         print("  GET  /api/health               - Service health check")
         print("  POST /api/auth/register        - User registration")
         print("  POST /api/auth/login           - User login")
         print("  GET  /api/auth/me              - Get current user")
+        print("  POST /api/classify             - Formulation classification")
+        print("  GET  /api/classify             - List classifications")
+        print("  GET  /api/classify/categories  - Get classification categories")
+        print("  POST /api/classify/test        - Test classification endpoint")
         
         print(f"\n[OK] FastAPI server starting at http://localhost:8000")
         print("=" * 60 + "\n")
@@ -147,7 +143,7 @@ async def lifespan(app: FastAPI):
     # Shutdown
     logger.info("Shutting down AyurPedia Phase 2 Backend...")
     await get_mongodb().close()
-    await get_redis().close()
+    await get_neo4j().close()
     print("\nShutting down AyurPedia Phase 2 Backend...")
 
 
@@ -163,6 +159,30 @@ app = FastAPI(
 rate_limiter = get_rate_limiter()
 app.middleware("http")(rate_limiter)
 
+# Add request logging middleware for debugging
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    """Log all requests for debugging purposes."""
+    # Log basic request info
+    logger.info(f"Incoming request: {request.method} {request.url.path}")
+    
+    # Try to log request body for POST requests
+    if request.method in ["POST", "PUT", "PATCH"]:
+        try:
+            body = await request.body()
+            if body:
+                logger.info(f"Request body: {body.decode('utf-8')[:500]}")  # Log first 500 chars
+        except Exception as e:
+            logger.warning(f"Could not log request body: {e}")
+    
+    # Process request
+    response = await call_next(request)
+    
+    # Log response status
+    logger.info(f"Response status: {response.status_code}")
+    
+    return response
+
 # Add CORS middleware (will be updated after config loads)
 app.add_middleware(
     CORSMiddleware,
@@ -176,12 +196,12 @@ app.add_middleware(
 
 # Include routers
 app.include_router(chat_router)
-app.include_router(classify_router)
 app.include_router(health_router)
 app.include_router(conversations_router)
 app.include_router(facilitator_router)
 app.include_router(auth_router, prefix="/api")
 app.include_router(conversations_auth_router, prefix="/api")
+app.include_router(classify_router, prefix="/api")
 
 
 # Global exception handlers
@@ -238,7 +258,6 @@ async def root():
         "description": "RAG-based legal assistant for IP and traditional knowledge",
         "endpoints": {
             "health": "/api/health",
-            "classify": "/api/classify",
             "chat": "/api/chat"
         },
         "documentation": "/docs"

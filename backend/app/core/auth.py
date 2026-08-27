@@ -37,6 +37,11 @@ def get_password_hash(password: str) -> str:
     return bcrypt.hashpw(_prepare_password(password), bcrypt.gensalt()).decode("utf-8")
 
 
+def hash_password(password: str) -> str:
+    """Backward-compatible name for password hashing callers."""
+    return get_password_hash(password)
+
+
 def create_access_token(data: Dict[str, Any], expires_delta: Optional[timedelta] = None) -> str:
     """Create a JWT access token."""
     to_encode = data.copy()

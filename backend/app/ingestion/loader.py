@@ -3,7 +3,6 @@ Loader module for AyurPedia.
 Handles loading document chunks with embeddings into Qdrant vector database.
 """
 
-import json
 import os
 import time
 from typing import List, Dict, Any, Optional
@@ -16,26 +15,25 @@ from app.models.document import DocumentChunk
 class DocumentLoader:
     """Document loader for processing and loading chunks into Qdrant."""
     
-    def __init__(self, qdrant_db: QdrantDB, embedder: Embedder, checkpoint_dir: str = "checkpoints") -> None:
+    def __init__(self, qdrant_db: QdrantDB, embedder: Embedder) -> None:
         """Initialize document loader.
         
         Args:
             qdrant_db: QdrantDB instance for vector storage
             embedder: Embedder instance for generating embeddings
-            checkpoint_dir: Directory to store checkpoint files
         """
         self.qdrant_db = qdrant_db
         self.embedder = embedder
         self.success_count = 0
         self.failure_count = 0
-        self.checkpoint_dir = checkpoint_dir
-        
-        # Create checkpoint directory if it doesn't exist
-        if not os.path.exists(checkpoint_dir):
-            os.makedirs(checkpoint_dir)
     
     def prepare_payload(self, chunk: DocumentChunk) -> Dict[str, Any]:
-        """Prepare Qdrant payload from DocumentChunk.
+        """Prepare Qdrant payload from DocumentChunk with hierarchical support.
+        
+        Delegates to DocumentChunk.to_dict() so the payload shape stays in sync
+        with the model. The returned dict includes 'id' so QdrantDB can use the
+        chunk's deterministic ID as the point ID, which is what makes
+        child.parent_id resolvable at query time.
         
         Args:
             chunk: DocumentChunk object
@@ -43,16 +41,7 @@ class DocumentLoader:
         Returns:
             Dictionary formatted for Qdrant payload
         """
-        return {
-            'text': chunk.text,
-            'source': chunk.metadata.get('source', ''),
-            'section': chunk.metadata.get('section', ''),
-            'jurisdiction': chunk.metadata.get('jurisdiction', ''),
-            'year': chunk.metadata.get('year', 0),
-            'chunk_id': chunk.metadata.get('chunk_id', ''),
-            'document_type': chunk.metadata.get('document_type', ''),
-            'file_name': chunk.metadata.get('file_name', '')
-        }
+        return chunk.to_dict()
     
     def chunk_to_payload(self, chunk: DocumentChunk) -> Dict[str, Any]:
         """Convert DocumentChunk to Qdrant payload format.
@@ -69,18 +58,14 @@ class DocumentLoader:
         self,
         chunks: List[DocumentChunk],
         collection_name: str,
-        show_progress: bool = True,
-        document_name: str = None,
-        ignore_checkpoints: bool = False
+        show_progress: bool = True
     ) -> int:
-        """Generate embeddings and load chunks into Qdrant with checkpointing.
+        """Generate embeddings and load chunks into Qdrant.
         
         Args:
             chunks: List of DocumentChunk objects
             collection_name: Name of the Qdrant collection
             show_progress: Whether to show progress bar
-            document_name: Name of document for checkpointing
-            ignore_checkpoints: Whether to ignore existing checkpoints
             
         Returns:
             Number of successfully loaded chunks
@@ -89,41 +74,22 @@ class DocumentLoader:
             print("No chunks to load.")
             return 0
         
-        # Check for existing checkpoint
-        start_index = 0
-        if document_name and not ignore_checkpoints:
-            checkpoint = self.load_checkpoint(document_name)
-            if checkpoint and checkpoint['processed_chunks'] < len(chunks):
-                start_index = checkpoint['processed_chunks']
-                print(f"Resuming from chunk {start_index} of {len(chunks)}")
-            elif checkpoint and checkpoint['processed_chunks'] >= len(chunks):
-                print(f"Document already fully processed ({checkpoint['processed_chunks']} chunks)")
-                return checkpoint['processed_chunks']
-        
-        # Process from checkpoint
-        chunks_to_process = chunks[start_index:]
-        if not chunks_to_process:
-            print("No new chunks to process.")
-            return start_index
+        chunks_to_process = chunks
         
         # Extract text from chunks
         texts = [chunk.text for chunk in chunks_to_process]
         
         # Generate embeddings with rate limit handling
-        print(f"Generating embeddings for {len(texts)} chunks (starting from {start_index})...")
+        print(f"Generating embeddings for {len(texts)} chunks...")
         embeddings = []
         
         for i in range(0, len(texts), self.qdrant_db.batch_size):
             batch = texts[i:i + self.qdrant_db.batch_size]
-            batch_number = start_index + i
+            batch_number = i
             
             try:
                 batch_embeddings = self.embedder.embed_batch(batch)
                 embeddings.extend(batch_embeddings)
-                
-                # Save checkpoint after each batch
-                if document_name:
-                    self.save_checkpoint(document_name, start_index + i + len(batch), len(chunks))
                 
                 # Add delay between batches
                 if i + self.qdrant_db.batch_size < len(texts):
@@ -133,7 +99,6 @@ class DocumentLoader:
                 error_str = str(e)
                 if "429" in error_str or "quota" in error_str.lower():
                     print(f"\nRATE LIMIT HIT at chunk {batch_number}")
-                    print(f"Checkpoint saved at {start_index + i} chunks")
                     print("Resume after quota resets to continue from this point")
                     raise
                 else:
@@ -142,17 +107,8 @@ class DocumentLoader:
                     zero_vectors = [[0.0] * self.embedder.embedding_dimension] * len(batch)
                     embeddings.extend(zero_vectors)
         
-        # Combine with previously processed chunks if resuming
-        all_embeddings = []
-        all_chunks = []
-        
-        if start_index > 0:
-            # Assume previous chunks were already loaded successfully
-            all_embeddings = [[0.0] * self.embedder.embedding_dimension] * start_index
-            all_chunks = chunks[:start_index]
-        
-        all_embeddings.extend(embeddings)
-        all_chunks.extend(chunks_to_process)
+        all_embeddings = embeddings
+        all_chunks = chunks_to_process
         
         # Validate embeddings
         valid_embeddings = []
@@ -167,6 +123,10 @@ class DocumentLoader:
         
         # Prepare payloads
         payloads = [self.chunk_to_payload(chunk) for chunk in valid_chunks]
+        
+        # A dropped parent orphans its children, which silently breaks
+        # parent-child retrieval for those chunks. Surface it loudly.
+        self._report_hierarchy(chunks_to_process, valid_chunks)
         
         # Load into Qdrant
         print(f"Loading {len(valid_chunks)} chunks into collection '{collection_name}'...")
@@ -189,11 +149,40 @@ class DocumentLoader:
         self.success_count += success_count
         self.failure_count += len(valid_chunks) - success_count
         
-        # Clear checkpoint on successful completion
-        if document_name and success_count == len(chunks):
-            self.clear_checkpoint(document_name)
-        
         return success_count
+    
+    def _report_hierarchy(
+        self,
+        submitted: List[DocumentChunk],
+        valid: List[DocumentChunk]
+    ) -> None:
+        """Print a parent/child breakdown and warn about orphaned children.
+        
+        Args:
+            submitted: Chunks handed to the loader
+            valid: Chunks that survived embedding validation
+        """
+        parents = [c for c in valid if c.chunk_type == 'parent']
+        children = [c for c in valid if c.chunk_type == 'child']
+        
+        if not parents and not children:
+            return
+        
+        print(f"  Hierarchy: {len(parents)} parent + {len(children)} child chunks")
+        
+        surviving_parent_ids = {c.id for c in parents}
+        orphaned = [
+            c for c in children
+            if c.parent_id and c.parent_id not in surviving_parent_ids
+        ]
+        
+        if orphaned:
+            dropped = len(submitted) - len(valid)
+            print(
+                f"  WARNING: {len(orphaned)} child chunks are orphaned "
+                f"({dropped} chunks failed validation). Their parent context "
+                f"will not be retrievable."
+            )
     
     def process_and_load(
         self,
@@ -260,62 +249,6 @@ class DocumentLoader:
         self.success_count = 0
         self.failure_count = 0
     
-    def save_checkpoint(self, document_name: str, processed_chunks: int, total_chunks: int) -> None:
-        """Save checkpoint for document processing progress.
-        
-        Args:
-            document_name: Name of the document being processed
-            processed_chunks: Number of chunks processed so far
-            total_chunks: Total number of chunks in document
-        """
-        checkpoint_file = os.path.join(self.checkpoint_dir, f"{document_name.replace('.pdf', '')}_checkpoint.json")
-        checkpoint_data = {
-            'document_name': document_name,
-            'processed_chunks': processed_chunks,
-            'total_chunks': total_chunks,
-            'timestamp': str(time.time())
-        }
-        
-        try:
-            with open(checkpoint_file, 'w') as f:
-                json.dump(checkpoint_data, f)
-        except Exception as e:
-            print(f"Error saving checkpoint: {e}")
-    
-    def load_checkpoint(self, document_name: str) -> Optional[Dict[str, Any]]:
-        """Load checkpoint for document processing progress.
-        
-        Args:
-            document_name: Name of the document to load checkpoint for
-            
-        Returns:
-            Checkpoint data if exists, None otherwise
-        """
-        checkpoint_file = os.path.join(self.checkpoint_dir, f"{document_name.replace('.pdf', '')}_checkpoint.json")
-        
-        try:
-            if os.path.exists(checkpoint_file):
-                with open(checkpoint_file, 'r') as f:
-                    return json.load(f)
-        except Exception as e:
-            print(f"Error loading checkpoint: {e}")
-        
-        return None
-    
-    def clear_checkpoint(self, document_name: str) -> None:
-        """Clear checkpoint for a document.
-        
-        Args:
-            document_name: Name of the document to clear checkpoint for
-        """
-        checkpoint_file = os.path.join(self.checkpoint_dir, f"{document_name.replace('.pdf', '')}_checkpoint.json")
-        
-        try:
-            if os.path.exists(checkpoint_file):
-                os.remove(checkpoint_file)
-        except Exception as e:
-            print(f"Error clearing checkpoint: {e}")
-    
     def validate_chunks(self, chunks: List[DocumentChunk]) -> List[DocumentChunk]:
         """Validate chunks before loading.
         
@@ -349,7 +282,7 @@ class DocumentLoader:
         collection_name: str,
         document_name: str
     ) -> Dict[str, Any]:
-        """Load chunks for a single document with detailed reporting and checkpointing.
+        """Load chunks for a single document with detailed reporting.
         
         Args:
             chunks: List of DocumentChunk objects
@@ -377,8 +310,8 @@ class DocumentLoader:
                 'success': False
             }
         
-        # Load chunks with checkpointing (ignore old checkpoints for fresh start)
-        loaded_count = self.load_chunks(valid_chunks, collection_name, show_progress=True, document_name=document_name, ignore_checkpoints=True)
+        # Load chunks
+        loaded_count = self.load_chunks(valid_chunks, collection_name, show_progress=True)
         
         result = {
             'document_name': document_name,

@@ -10,7 +10,8 @@ uvicorn[standard]>=0.24.0
 langchain
 langchain-core
 langchain-community
-langchain-google-genai
+langchain-groq
+langchain-openai
 langgraph
 python-multipart
 httpx
@@ -19,9 +20,8 @@ pymongo
 dnspython
 bcrypt>=4.0.0
 python-jose[cryptography]
-python-multipart
-redis
 sentry-sdk
 slowapi
 email-validator
 pydantic-settings>=2.10.1
+neo4j

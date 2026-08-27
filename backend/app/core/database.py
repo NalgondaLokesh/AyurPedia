@@ -4,22 +4,57 @@ Handles Qdrant vector database operations for storing and retrieving document ch
 """
 
 import uuid
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional, Sequence
 from qdrant_client import QdrantClient
-from qdrant_client.models import Distance, VectorParams, PointStruct, Filter, FieldCondition, MatchValue
+from qdrant_client.models import (
+    Distance,
+    VectorParams,
+    PointStruct,
+    Filter,
+    FieldCondition,
+    MatchValue,
+    PayloadSchemaType,
+)
 from .config import get_config
+
+
+# Payload keys written for every point, with the default used when a chunk omits
+# the key. Hierarchy fields MUST be included here: retrieval of parent context
+# depends entirely on 'chunk_type' and 'parent_id' surviving the round trip.
+PAYLOAD_SCHEMA: Dict[str, Any] = {
+    'text': '',
+    'source': '',
+    'section': '',
+    'jurisdiction': '',
+    'year': 0,
+    'chunk_id': '',
+    'document_type': '',
+    'file_name': '',
+    # --- hierarchical chunking fields ---
+    'chunk_type': 'standard',
+    'parent_id': '',
+    'parent_chunk_id': '',
+    'child_ids': [],
+    'hierarchy_level': 0,
+    'chunk_index': 0,
+    'start_char': 0,
+    'end_char': 0,
+}
+
+# Payload keys that are never persisted (they are transient or redundant).
+_PAYLOAD_EXCLUDED = frozenset({'id', 'embedding', 'vector', 'score'})
 
 
 class QdrantDB:
     """Qdrant database client for vector storage and retrieval."""
     
-    def __init__(self, url: str, api_key: str, embedding_dimension: int = 768, batch_size: int = 100) -> None:
+    def __init__(self, url: str, api_key: str, embedding_dimension: int = 1024, batch_size: int = 100) -> None:
         """Initialize Qdrant client with cloud credentials.
         
         Args:
             url: Qdrant cloud URL
             api_key: Qdrant API key
-            embedding_dimension: Dimension of embeddings (default 768 for gemini-embedding-001)
+            embedding_dimension: Dimension of embeddings (default 1024 for cohere embed-english-v3.0)
             batch_size: Batch size for upsert operations
         """
         self.client = QdrantClient(url=url, api_key=api_key)
@@ -60,7 +95,55 @@ class QdrantDB:
                     )
                 )
                 print(f"Created collection: {collection_name}")
+
+            # Idempotent: needed for hierarchical chunk_type filtering.
+            self.create_payload_indexes(collection_name)
     
+    def _build_payload(self, chunk: Dict[str, Any]) -> Dict[str, Any]:
+        """Build a Qdrant payload from a chunk dictionary.
+
+        Applies PAYLOAD_SCHEMA defaults and then passes through any extra keys,
+        so newly added chunk fields are stored rather than silently dropped.
+
+        Args:
+            chunk: Flat chunk dictionary (see DocumentChunk.to_dict)
+
+        Returns:
+            Payload dictionary to persist alongside the vector
+        """
+        payload = {key: chunk.get(key, default) for key, default in PAYLOAD_SCHEMA.items()}
+
+        for key, value in chunk.items():
+            if key not in payload and key not in _PAYLOAD_EXCLUDED:
+                payload[key] = value
+
+        return payload
+
+    @staticmethod
+    def _resolve_point_id(chunk: Dict[str, Any]) -> str:
+        """Resolve the Qdrant point ID for a chunk.
+
+        Prefers the chunk's own deterministic ID so that re-ingesting a document
+        upserts existing points in place instead of creating duplicates, and so
+        that child.parent_id resolves to a real point ID.
+
+        Args:
+            chunk: Flat chunk dictionary
+
+        Returns:
+            A valid Qdrant point ID (UUID string)
+        """
+        candidate = chunk.get('id')
+        if candidate:
+            try:
+                # Qdrant only accepts unsigned ints or UUIDs as point IDs.
+                return str(uuid.UUID(str(candidate)))
+            except (ValueError, AttributeError, TypeError):
+                # Non-UUID ID: derive a stable UUID from it rather than losing
+                # the caller's identity by falling back to a random uuid4.
+                return str(uuid.uuid5(uuid.NAMESPACE_URL, f"ayurpedia.point|{candidate}"))
+        return str(uuid.uuid4())
+
     def upsert_chunks(
         self,
         collection_name: str,
@@ -82,22 +165,13 @@ class QdrantDB:
         
         points = []
         for chunk, embedding in zip(chunks, embeddings):
-            point_id = str(uuid.uuid4())
-            point = PointStruct(
-                id=point_id,
-                vector=embedding,
-                payload={
-                    'text': chunk.get('text', ''),
-                    'source': chunk.get('source', ''),
-                    'section': chunk.get('section', ''),
-                    'jurisdiction': chunk.get('jurisdiction', ''),
-                    'year': chunk.get('year', 0),
-                    'chunk_id': chunk.get('chunk_id', ''),
-                    'document_type': chunk.get('document_type', ''),
-                    'file_name': chunk.get('file_name', '')
-                }
+            points.append(
+                PointStruct(
+                    id=self._resolve_point_id(chunk),
+                    vector=embedding,
+                    payload=self._build_payload(chunk)
+                )
             )
-            points.append(point)
         
         # Upsert in batches
         success_count = 0
@@ -114,13 +188,96 @@ class QdrantDB:
                 print(f"Error upserting batch {i//self.batch_size}: {e}")
         
         return success_count
+
+    def retrieve_points(
+        self,
+        collection_name: str,
+        point_ids: Sequence[str]
+    ) -> List[Dict[str, Any]]:
+        """Fetch points by ID using Qdrant's point retrieval API.
+
+        Used by hierarchical retrieval to pull parent chunks for matched
+        children. This is a direct ID lookup, unlike scrolling the collection.
+
+        Args:
+            collection_name: Name of the collection
+            point_ids: Point IDs to fetch
+
+        Returns:
+            List of dictionaries with 'id' and 'payload' keys. Missing IDs are
+            omitted; an empty list is returned on error.
+        """
+        if not point_ids:
+            return []
+
+        try:
+            records = self.client.retrieve(
+                collection_name=collection_name,
+                ids=list(point_ids),
+                with_payload=True,
+                with_vectors=False
+            )
+            return [
+                {'id': str(record.id), 'payload': record.payload or {}}
+                for record in records
+            ]
+        except Exception as e:
+            print(f"Error retrieving points from collection '{collection_name}': {e}")
+            return []
     
+    def create_payload_indexes(self, collection_name: str) -> None:
+        """Create payload indexes required for efficient filtering.
+
+        Without these, filtering by chunk_type (to search only child chunks) and
+        looking documents up by file_name both degrade to full scans.
+
+        Args:
+            collection_name: Name of the collection to index
+        """
+        indexed_fields = ('chunk_type', 'file_name', 'parent_id', 'jurisdiction')
+
+        for field in indexed_fields:
+            try:
+                self.client.create_payload_index(
+                    collection_name=collection_name,
+                    field_name=field,
+                    field_schema=PayloadSchemaType.KEYWORD
+                )
+                print(f"Created payload index on '{collection_name}.{field}'")
+            except Exception as e:
+                # Already exists, or the server rejected it. Filtering still
+                # works without an index, just more slowly.
+                message = str(e).lower()
+                if 'already exists' not in message:
+                    print(f"Could not create index on '{collection_name}.{field}': {e}")
+
+    @staticmethod
+    def build_chunk_type_filter(chunk_types: Sequence[str]) -> Optional[Filter]:
+        """Build a Qdrant filter matching any of the given chunk types.
+
+        Args:
+            chunk_types: Chunk types to allow, e.g. ``('child',)``
+
+        Returns:
+            A Filter, or None when no chunk types were supplied
+        """
+        if not chunk_types:
+            return None
+
+        return Filter(
+            should=[
+                FieldCondition(key='chunk_type', match=MatchValue(value=chunk_type))
+                for chunk_type in chunk_types
+            ]
+        )
+
     def search_similar(
         self,
         collection_name: str,
         query_embedding: List[float],
         limit: int = 5,
-        score_threshold: float = 0.5
+        score_threshold: float = 0.5,
+        chunk_types: Optional[Sequence[str]] = None
     ) -> List[Dict[str, Any]]:
         """Search for similar vectors in the specified collection.
         
@@ -129,39 +286,75 @@ class QdrantDB:
             query_embedding: Query embedding vector
             limit: Maximum number of results to return
             score_threshold: Minimum similarity score threshold
+            chunk_types: Optional chunk types to restrict the search to, e.g.
+                ``('child',)`` to search only leaf chunks in a hierarchy
             
         Returns:
             List of similar chunks with their metadata and scores
         """
+        query_filter = self.build_chunk_type_filter(chunk_types) if chunk_types else None
+
         try:
-            if hasattr(self.client, 'query_points'):
-                response = self.client.query_points(
-                    collection_name=collection_name,
-                    query=query_embedding,
-                    limit=limit,
-                    score_threshold=score_threshold
-                )
-                search_result = response.points
-            else:
-                search_result = self.client.search(
-                    collection_name=collection_name,
-                    query_vector=query_embedding,
-                    limit=limit,
-                    score_threshold=score_threshold
-                )
-            
-            results = []
-            for result in search_result:
-                results.append({
-                    'id': result.id,
-                    'score': result.score,
-                    'payload': result.payload
-                })
-            
-            return results
+            search_result = self._execute_search(
+                collection_name, query_embedding, limit, score_threshold, query_filter
+            )
         except Exception as e:
             print(f"Error searching in collection '{collection_name}': {e}")
-            return []
+            if query_filter is None:
+                return []
+            # A filtered search can fail on older servers or a missing index.
+            # Degrade to an unfiltered search rather than returning nothing.
+            print(f"Retrying search in '{collection_name}' without chunk_type filter")
+            try:
+                search_result = self._execute_search(
+                    collection_name, query_embedding, limit, score_threshold, None
+                )
+            except Exception as retry_error:
+                print(f"Unfiltered retry also failed for '{collection_name}': {retry_error}")
+                return []
+
+        return [
+            {'id': str(result.id), 'score': result.score, 'payload': result.payload or {}}
+            for result in search_result
+        ]
+
+    def _execute_search(
+        self,
+        collection_name: str,
+        query_embedding: List[float],
+        limit: int,
+        score_threshold: float,
+        query_filter: Optional[Filter]
+    ) -> List[Any]:
+        """Run a vector search against Qdrant, handling client API differences.
+
+        Args:
+            collection_name: Name of the collection to search in
+            query_embedding: Query embedding vector
+            limit: Maximum number of results
+            score_threshold: Minimum similarity score
+            query_filter: Optional payload filter
+
+        Returns:
+            Raw scored points from the Qdrant client
+        """
+        if hasattr(self.client, 'query_points'):
+            response = self.client.query_points(
+                collection_name=collection_name,
+                query=query_embedding,
+                query_filter=query_filter,
+                limit=limit,
+                score_threshold=score_threshold
+            )
+            return response.points
+
+        return self.client.search(
+            collection_name=collection_name,
+            query_vector=query_embedding,
+            query_filter=query_filter,
+            limit=limit,
+            score_threshold=score_threshold
+        )
     
     def search_with_filter(
         self,

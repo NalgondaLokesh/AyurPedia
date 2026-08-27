@@ -1,16 +1,10 @@
 """
 Graph module for AyurPedia.
-Handles LangGraph workflow for classification and RAG.
+Handles RAG agents.
 """
 
-from .workflow import GraphWorkflow
-from .classification import ClassificationNode
-from .routing import RoutingNode
-from .validation import ValidationNode
+from .agents import get_agentic_rag
 
 __all__ = [
-    'GraphWorkflow',
-    'ClassificationNode',
-    'RoutingNode',
-    'ValidationNode'
+    'get_agentic_rag'
 ]

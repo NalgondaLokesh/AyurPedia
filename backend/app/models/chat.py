@@ -43,6 +43,8 @@ class ChatResponse(BaseModel):
     )
     classification: Optional[str] = Field(None, description="Classification result if applicable")
     jurisdiction: str = Field(..., description="Jurisdiction used for search")
+    reasoning: Optional[str] = Field(None, description="Step-by-step legal reasoning (from agentic RAG)")
+    graph_path: Optional[List[str]] = Field(None, description="Reasoning path through knowledge graph")
     
     class Config:
         json_schema_extra = {

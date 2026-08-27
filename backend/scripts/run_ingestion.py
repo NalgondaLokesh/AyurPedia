@@ -6,6 +6,7 @@ Processes PDF documents, creates chunks, generates embeddings, and loads into Qd
 import os
 import sys
 import time
+import argparse
 from typing import Dict, List
 
 # Add parent directory to path for imports
@@ -110,13 +111,12 @@ def process_pdf(
         # Create chunks
         print(f"-> Chunking...")
         metadata = parsed_data['metadata']
-        preserve_tables = metadata.document_type == "Regulation"
-        chunks = chunker.process_document(parsed_data['text'], metadata, preserve_tables)
+        chunks = chunker.create_chunks(parsed_data['text'], metadata)
         chunks_created = len(chunks)
         print(f"  OK {chunks_created} chunks created")
         
         # Generate embeddings and load
-        print(f"→ Embedding & Loading...")
+        print(f"-> Embedding & Loading...")
         loading_result = loader.load_single_document(chunks, collection_name, source_name)
         
         processing_time = time.time() - start_time
@@ -169,17 +169,30 @@ def process_pdf(
 
 def main() -> None:
     """Main ingestion function."""
+    # Parse command line arguments
+    parser = argparse.ArgumentParser(description='AyurPedia Document Ingestion')
+    parser.add_argument('--recreate', action='store_true', 
+                       help='Delete and recreate Qdrant collections before ingestion')
+    parser.add_argument('--parent-overlap', type=int, default=None,
+                       help='Override parent chunk overlap from config')
+    args = parser.parse_args()
+    
     print_header()
     
     # Load configuration
     config = get_config()
     
+    # Override parent_overlap if provided
+    parent_overlap = args.parent_overlap if args.parent_overlap is not None else config.parent_overlap
+    
     # Initialize components
     print("Initializing components...")
     parser = Parser(api_key=config.llamaparse_api_key)
     chunker = Chunker(
-        chunk_size=config.chunk_size,
-        chunk_overlap=config.chunk_overlap
+        parent_chunk_size=config.parent_chunk_size,
+        child_chunk_size=config.child_chunk_size,
+        chunk_overlap=config.chunk_overlap,
+        parent_overlap=parent_overlap
     )
     embedder = Embedder(api_key=config.cohere_api_key)
     qdrant_db = QdrantDB(
@@ -188,14 +201,14 @@ def main() -> None:
         embedding_dimension=config.embedding_dimension,
         batch_size=config.batch_size
     )
-    loader = DocumentLoader(qdrant_db=qdrant_db, embedder=embedder, checkpoint_dir="checkpoints")
+    loader = DocumentLoader(qdrant_db=qdrant_db, embedder=embedder)
     
     print("OK Components initialized successfully\n")
     
     # Create Qdrant collections
     print_section("Creating Qdrant Collections")
     collections = [config.india_collection, config.international_collection]
-    qdrant_db.create_collections(collections, recreate=False)
+    qdrant_db.create_collections(collections, recreate=args.recreate)
     print(f"OK Qdrant collections created: {', '.join(collections)}")
     
     # Process PDFs
@@ -239,9 +252,9 @@ def main() -> None:
             total_chunks += result.chunks_stored
             india_chunks += result.chunks_stored
             if result.chunks_stored > 0:
-                print(f"  → OK {result.chunks_stored} chunks stored ({config.india_collection})")
+                print(f"  -> OK {result.chunks_stored} chunks stored ({config.india_collection})")
         else:
-            print(f"  → FAIL Failed: {result.error_message}")
+            print(f"  -> FAIL Failed: {result.error_message}")
     
     # Process International documents
     print("\n--- International Documents ---")
@@ -264,9 +277,9 @@ def main() -> None:
             total_chunks += result.chunks_stored
             international_chunks += result.chunks_stored
             if result.chunks_stored > 0:
-                print(f"  → OK {result.chunks_stored} chunks stored ({config.international_collection})")
+                print(f"  -> OK {result.chunks_stored} chunks stored ({config.international_collection})")
         else:
-            print(f"  → FAIL Failed: {result.error_message}")
+            print(f"  -> FAIL Failed: {result.error_message}")
     
     # Print final summary
     print_section("INGESTION COMPLETE")

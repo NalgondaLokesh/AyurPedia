@@ -1,18 +1,21 @@
 """
 Models module for AyurPedia.
-Provides data models for documents and processing results.
 """
 
-from .document import (
-    DocumentMetadata,
-    DocumentChunk,
-    DocumentProcessingResult,
-    IngestionSummary
-)
+from .document import DocumentChunk, DocumentMetadata, DocumentProcessingResult, IngestionSummary
+from .chat import ChatRequest, ChatResponse
+from .user import UserCreate, UserResponse, UserInDB, Token, TokenData
 
 __all__ = [
+    'DocumentChunk',
     'DocumentMetadata',
-    'DocumentChunk', 
     'DocumentProcessingResult',
-    'IngestionSummary'
+    'IngestionSummary',
+    'ChatRequest',
+    'ChatResponse',
+    'UserCreate',
+    'UserResponse',
+    'UserInDB',
+    'Token',
+    'TokenData'
 ]

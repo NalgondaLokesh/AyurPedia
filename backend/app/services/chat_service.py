@@ -4,7 +4,7 @@ Handles business logic for chat queries.
 """
 
 import logging
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 from ..rag.chains import RAGChain
 from ..models.chat import ChatRequest, ChatResponse, Citation
 
@@ -17,14 +17,14 @@ logger = logging.getLogger(__name__)
 class ChatService:
     """Service for handling chat queries."""
     
-    def __init__(self, rag_chain: RAGChain) -> None:
-        """Initialize chat service with RAG chain.
+    def __init__(self, agentic_rag: Any) -> None:
+        """Initialize chat service with agentic RAG.
         
         Args:
-            rag_chain: RAGChain instance
+            agentic_rag: AgenticRAGWorkflow instance for graph-based retrieval
         """
-        self.rag_chain = rag_chain
-        logger.info("ChatService initialized")
+        self.agentic_rag = agentic_rag
+        logger.info("ChatService initialized with agentic RAG")
     
     def process_query(self, request: ChatRequest) -> ChatResponse:
         """Process a chat query.
@@ -38,8 +38,13 @@ class ChatService:
         logger.info(f"Processing query: '{request.query}' in jurisdiction: {request.jurisdiction}")
         
         try:
-            # Generate response using RAG chain
-            result = self.rag_chain.generate(request.query, request.jurisdiction, getattr(request, 'language', 'en'))
+            # Use agentic RAG
+            logger.info("Using agentic RAG with graph retrieval")
+            result = self.agentic_rag.invoke(
+                request.query, 
+                request.jurisdiction, 
+                getattr(request, 'language', 'en')
+            )
             
             # Format response
             response = self.format_response(result, request)
@@ -49,9 +54,6 @@ class ChatService:
             
             # Persist to MongoDB
             self.persist_conversation(request, response)
-
-            # Log interaction
-            self.log_interaction(request, response)
             
             return response
             
@@ -122,12 +124,23 @@ class ChatService:
                 section=citation.get('section', '')
             ))
         
-        return ChatResponse(
+        # Handle agentic RAG additional fields
+        response = ChatResponse(
             response=rag_result.get('response', ''),
             citations=citations,
             confidence=rag_result.get('confidence', 'Low'),
             jurisdiction=request.jurisdiction
         )
+        
+        # Add reasoning if available (from agentic RAG)
+        if rag_result.get('reasoning'):
+            response.reasoning = rag_result['reasoning']
+        
+        # Add graph path if available
+        if rag_result.get('graph_path'):
+            response.graph_path = rag_result['graph_path']
+        
+        return response
     
     def add_disclaimer(self, response: ChatResponse) -> ChatResponse:
         """Add legal disclaimer to response.
@@ -140,23 +153,3 @@ class ChatService:
         """
         response.disclaimer = "This is information, not legal advice. Consult a qualified legal professional."
         return response
-    
-    def log_interaction(self, request: ChatRequest, response: ChatResponse) -> None:
-        """Log interaction for audit purposes.
-        
-        Args:
-            request: ChatRequest
-            response: ChatResponse
-        """
-        try:
-            from ..utils.logging import log_interaction
-            log_interaction(
-                user_id=None,  # Can be added when authentication is implemented
-                query=request.query,
-                jurisdiction=request.jurisdiction,
-                response=response.response,
-                citations=[c.text for c in response.citations],
-                confidence=response.confidence
-            )
-        except Exception as e:
-            logger.warning(f"Failed to log interaction: {e}")
