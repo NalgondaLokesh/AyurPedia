@@ -12,6 +12,15 @@ from operator import add
 from ..core.neo4j import get_neo4j
 from ..core.llm import get_llm_client
 from ..rag.retriever import Retriever
+from ..models.patent import (
+    PatentNoveltyRequest,
+    PatentNoveltyResponse,
+    ComponentNovelty,
+    PriorArtReference,
+    Section3pAnalysis,
+    RiskLevel,
+    Section3pStatus
+)
 
 
 # Configure logging
@@ -358,17 +367,24 @@ class ReasoningAgent:
             response = self.llm.invoke([HumanMessage(content=reasoning_prompt)])
             response_text = response.content
             
-            # Extract reasoning and answer
-            reasoning, final_response = self._parse_response(response_text)
+            # Extract reasoning, answer, and citations
+            reasoning, final_response, citations = self._parse_response(response_text)
+            
+            # Fallback: if no citations extracted from LLM response, extract from vector_context
+            if not citations and has_retrieval:
+                citations = self._extract_citations_from_context(vector_context)
+                logger.info(f"Using fallback citation extraction from context: {len(citations)} citations")
             
             state["reasoning"] = reasoning
             state["response"] = final_response
+            state["citations"] = citations
             
-            logger.info("ReasoningAgent completed synthesis")
+            logger.info(f"ReasoningAgent completed synthesis with {len(citations)} citations")
         except Exception as e:
             logger.error(f"Reasoning failed: {e}")
             state["reasoning"] = "Reasoning generation failed"
             state["response"] = "I encountered an error while generating the legal analysis."
+            state["citations"] = []
         
         return state
     
@@ -420,6 +436,10 @@ INSTRUCTIONS:
 5. Format your response in {lang_name}
 6. Keep it concise but comprehensive
 7. Include a brief disclaimer at the end
+8. At the very end of your response, add a "References" section listing all sources cited in the format:
+   **References:**
+   - [Source: Document Name]
+   - [Source: Document Name, Section: X.Y]
 
 Example citation format: "According to the Patents Act [Source: Patents Act 1970], traditional knowledge cannot be patented."
 
@@ -443,24 +463,569 @@ Provide your answer directly below:"""
         
         return prompt
     
-    def _parse_response(self, response: str) -> tuple[str, str]:
-        """Parse reasoning and answer from LLM response.
+    def _parse_response(self, response: str) -> tuple[str, str, List[Dict[str, str]]]:
+        """Parse reasoning, answer, and citations from LLM response.
         
         Args:
             response: LLM response text
             
         Returns:
-            Tuple of (reasoning, answer)
+            Tuple of (reasoning, answer, citations)
         """
-        # For simplified prompt, use entire response as answer
-        # Extract any citations for reasoning
         import re
-        citations = re.findall(r'\[Source:[^\]]+\]', response)
+        
+        # Extract citations in format [Source: Document Name] or [Source: Document Name, Section: X.Y]
+        citation_pattern = r'\[Source:\s*([^\]]+)\]'
+        citation_matches = re.findall(citation_pattern, response)
+        
+        # Parse citations into structured format
+        citations = []
+        for match in citation_matches:
+            # Parse source and section
+            if ',' in match:
+                parts = [p.strip() for p in match.split(',')]
+                source = parts[0]
+                # Extract section if present
+                section = ""
+                for part in parts[1:]:
+                    if part.strip().lower().startswith('section:'):
+                        section = part.split(':', 1)[1].strip()
+                        break
+            else:
+                source = match.strip()
+                section = ""
+            
+            citations.append({
+                "source": source,
+                "section": section,
+                "text": f"[Source: {match}]"  # Keep original citation text for reference
+            })
         
         reasoning = f"Answer based on retrieved documents. Citations found: {len(citations)}"
         answer = response.strip()
         
-        return reasoning, answer
+        return reasoning, answer, citations
+    
+    def _extract_citations_from_context(self, vector_context: List[Dict[str, Any]]) -> List[Dict[str, str]]:
+        """Extract citations from vector context as fallback.
+        
+        Args:
+            vector_context: Retrieved document context
+            
+        Returns:
+            List of citation dictionaries
+        """
+        citations = []
+        seen_sources = set()
+        
+        for ctx in vector_context[:5]:  # Top 5 documents
+            metadata = ctx.get("metadata", {})
+            source = metadata.get("source", "Unknown Source")
+            section = metadata.get("section", "")
+            
+            # Deduplicate by source
+            source_key = f"{source}-{section}"
+            if source_key in seen_sources:
+                continue
+            seen_sources.add(source_key)
+            
+            citations.append({
+                "source": source,
+                "section": section,
+                "text": ctx.get("text", "")[:200]  # First 200 chars as context
+            })
+        
+        return citations
+
+
+class PatentNoveltyAgent:
+    """Agent for analyzing patent novelty and Section 3(p) compliance."""
+    
+    def __init__(self, retriever: Retriever):
+        """Initialize patent novelty agent.
+        
+        Args:
+            retriever: Vector retriever instance for traditional knowledge search
+        """
+        self.retriever = retriever
+        self.llm_client = get_llm_client()
+        self.llm = self.llm_client.get_llm_with_fallback()
+        logger.info("PatentNoveltyAgent initialized")
+    
+    def analyze_novelty(self, request: PatentNoveltyRequest) -> PatentNoveltyResponse:
+        """Analyze formulation novelty and Section 3(p) compliance.
+        
+        Args:
+            request: Patent novelty analysis request
+            
+        Returns:
+            Patent novelty analysis response
+        """
+        logger.info(f"PatentNoveltyAgent analyzing formulation: {request.formulation_name}")
+        
+        # Step 1: Search for traditional knowledge references
+        traditional_context = self._search_traditional_knowledge(request)
+        
+        # Step 2: Analyze component novelty
+        component_novelty = self._analyze_component_novelty(request, traditional_context)
+        
+        # Step 3: Calculate overall novelty score
+        novelty_score, risk_level = self._calculate_overall_novelty(component_novelty)
+        
+        # Step 4: Identify prior art
+        prior_art = self._identify_prior_art(request, traditional_context)
+        
+        # Step 5: Section 3(p) compliance analysis
+        section3p_analysis = self._analyze_section3p_compliance(request, component_novelty, prior_art)
+        
+        # Step 6: Calculate confidence
+        confidence = self._calculate_confidence(traditional_context, prior_art)
+        
+        # Build response
+        response = PatentNoveltyResponse(
+            formulation_name=request.formulation_name,
+            novelty_score=novelty_score,
+            risk_level=risk_level,
+            component_novelty=component_novelty,
+            prior_art=prior_art,
+            section3p_analysis=section3p_analysis,
+            confidence=confidence,
+            ai_generated=True
+        )
+        
+        logger.info(f"PatentNoveltyAgent completed: novelty_score={novelty_score}, risk_level={risk_level}")
+        return response
+    
+    def _search_traditional_knowledge(self, request: PatentNoveltyRequest) -> List[Dict[str, Any]]:
+        """Search for traditional knowledge references.
+        
+        Args:
+            request: Patent novelty request
+            
+        Returns:
+            List of traditional knowledge context documents
+        """
+        context = []
+        
+        # Build search queries for each ingredient
+        for ingredient in request.ingredients[:3]:  # Limit to top 3 ingredients
+            try:
+                docs = self.retriever.search(
+                    query=f"{ingredient} traditional ayurvedic formulation classical text",
+                    jurisdiction=request.jurisdiction,
+                    use_hierarchical=True
+                )
+                for doc in docs:
+                    context.append({
+                        "text": doc.text,
+                        "metadata": doc.metadata,
+                        "ingredient": ingredient
+                    })
+            except Exception as e:
+                logger.warning(f"Traditional knowledge search failed for {ingredient}: {e}")
+        
+        # Search for formulation name
+        try:
+            docs = self.retriever.search(
+                query=f"{request.formulation_name} ayurvedic classical text",
+                jurisdiction=request.jurisdiction,
+                use_hierarchical=True
+            )
+            for doc in docs:
+                context.append({
+                    "text": doc.text,
+                    "metadata": doc.metadata,
+                    "ingredient": "formulation"
+                })
+        except Exception as e:
+            logger.warning(f"Formulation search failed: {e}")
+        
+        logger.info(f"Found {len(context)} traditional knowledge references")
+        return context
+    
+    def _analyze_component_novelty(self, request: PatentNoveltyRequest, 
+                                  traditional_context: List[Dict[str, Any]]) -> List[ComponentNovelty]:
+        """Analyze novelty for each component.
+        
+        Args:
+            request: Patent novelty request
+            traditional_context: Traditional knowledge context
+            
+        Returns:
+            List of component novelty analyses
+        """
+        components = []
+        
+        # Analyze ingredients novelty
+        ingredients_analysis = self._analyze_ingredients_novelty(request, traditional_context)
+        components.append(ingredients_analysis)
+        
+        # Analyze process novelty
+        process_analysis = self._analyze_process_novelty(request, traditional_context)
+        components.append(process_analysis)
+        
+        # Analyze combination novelty
+        combination_analysis = self._analyze_combination_novelty(request, traditional_context)
+        components.append(combination_analysis)
+        
+        return components
+    
+    def _analyze_ingredients_novelty(self, request: PatentNoveltyRequest,
+                                    traditional_context: List[Dict[str, Any]]) -> ComponentNovelty:
+        """Analyze ingredients novelty."""
+        # Count traditional references for ingredients
+        traditional_ingredients = set()
+        for ctx in traditional_context:
+            if ctx.get("ingredient") != "formulation":
+                traditional_ingredients.add(ctx["ingredient"])
+        
+        # Calculate novelty score based on traditional overlap
+        total_ingredients = len(request.ingredients)
+        traditional_count = len([ing for ing in request.ingredients if any(t in ing.lower() for t in traditional_ingredients)])
+        
+        if total_ingredients > 0:
+            novelty_score = (1 - (traditional_count / total_ingredients)) * 100
+        else:
+            novelty_score = 50.0
+        
+        # Determine risk level
+        if novelty_score >= 70:
+            risk_level = RiskLevel.LOW
+        elif novelty_score >= 40:
+            risk_level = RiskLevel.MEDIUM
+        else:
+            risk_level = RiskLevel.HIGH
+        
+        # Build analysis
+        analysis = f"Ingredients analysis: {traditional_count}/{total_ingredients} ingredients found in traditional knowledge. "
+        if novelty_score >= 70:
+            analysis += "High novelty - significant new or modified ingredients."
+        elif novelty_score >= 40:
+            analysis += "Medium novelty - mix of traditional and new ingredients."
+        else:
+            analysis += "Low novelty - primarily traditional ingredients."
+        
+        return ComponentNovelty(
+            component="Ingredients",
+            score=novelty_score,
+            risk_level=risk_level,
+            analysis=analysis,
+            traditional_references=list(traditional_ingredients)
+        )
+    
+    def _analyze_process_novelty(self, request: PatentNoveltyRequest,
+                                 traditional_context: List[Dict[str, Any]]) -> ComponentNovelty:
+        """Analyze process novelty."""
+        # Use LLM to analyze process novelty
+        prompt = f"""Analyze the novelty of this Ayurvedic preparation process.
+
+Process: {request.process}
+Formulation: {request.formulation_name}
+Novelty Claim: {request.novelty_claim or 'None specified'}
+
+Traditional Context:
+{chr(10).join([ctx['text'][:300] for ctx in traditional_context[:2]])}
+
+Rate the novelty on a scale of 0-100 based on:
+- How different is this from traditional preparation methods?
+- Does it involve modern technology (nano-emulsion, extraction, etc.)?
+- Is it a significant process innovation?
+
+Provide your response in this JSON format:
+{{
+  "score": 0-100,
+  "analysis": "detailed explanation",
+  "traditional_references": ["reference1", "reference2"]
+}}"""
+        
+        try:
+            response = self.llm.invoke([HumanMessage(content=prompt)])
+            response_text = response.content
+            
+            # Parse JSON
+            import json
+            import re
+            json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
+            if json_match:
+                result = json.loads(json_match.group())
+                score = result.get("score", 50.0)
+                analysis = result.get("analysis", "Process analysis completed")
+                traditional_refs = result.get("traditional_references", [])
+            else:
+                score = 50.0
+                analysis = "Could not parse process analysis"
+                traditional_refs = []
+        except Exception as e:
+            logger.warning(f"Process novelty analysis failed: {e}")
+            score = 50.0
+            analysis = "Process analysis unavailable"
+            traditional_refs = []
+        
+        # Determine risk level
+        if score >= 70:
+            risk_level = RiskLevel.LOW
+        elif score >= 40:
+            risk_level = RiskLevel.MEDIUM
+        else:
+            risk_level = RiskLevel.HIGH
+        
+        return ComponentNovelty(
+            component="Process",
+            score=score,
+            risk_level=risk_level,
+            analysis=analysis,
+            traditional_references=traditional_refs
+        )
+    
+    def _analyze_combination_novelty(self, request: PatentNoveltyRequest,
+                                    traditional_context: List[Dict[str, Any]]) -> ComponentNovelty:
+        """Analyze combination novelty."""
+        # Use LLM to analyze combination novelty
+        prompt = f"""Analyze the novelty of this Ayurvedic formulation combination.
+
+Formulation: {request.formulation_name}
+Ingredients: {', '.join(request.ingredients)}
+Intended Use: {request.intended_use}
+
+Traditional Context:
+{chr(10).join([ctx['text'][:300] for ctx in traditional_context[:2]])}
+
+Rate the novelty on a scale of 0-100 based on:
+- Is this combination found in classical texts?
+- Is the intended use traditional or novel?
+- Is there synergistic innovation?
+
+Provide your response in this JSON format:
+{{
+  "score": 0-100,
+  "analysis": "detailed explanation",
+  "traditional_references": ["reference1", "reference2"]
+}}"""
+        
+        try:
+            response = self.llm.invoke([HumanMessage(content=prompt)])
+            response_text = response.content
+            
+            # Parse JSON
+            import json
+            import re
+            json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
+            if json_match:
+                result = json.loads(json_match.group())
+                score = result.get("score", 50.0)
+                analysis = result.get("analysis", "Combination analysis completed")
+                traditional_refs = result.get("traditional_references", [])
+            else:
+                score = 50.0
+                analysis = "Could not parse combination analysis"
+                traditional_refs = []
+        except Exception as e:
+            logger.warning(f"Combination novelty analysis failed: {e}")
+            score = 50.0
+            analysis = "Combination analysis unavailable"
+            traditional_refs = []
+        
+        # Determine risk level
+        if score >= 70:
+            risk_level = RiskLevel.LOW
+        elif score >= 40:
+            risk_level = RiskLevel.MEDIUM
+        else:
+            risk_level = RiskLevel.HIGH
+        
+        return ComponentNovelty(
+            component="Combination",
+            score=score,
+            risk_level=risk_level,
+            analysis=analysis,
+            traditional_references=traditional_refs
+        )
+    
+    def _calculate_overall_novelty(self, component_novelty: List[ComponentNovelty]) -> tuple[float, RiskLevel]:
+        """Calculate overall novelty score from components.
+        
+        Args:
+            component_novelty: List of component novelty analyses
+            
+        Returns:
+            Tuple of (novelty_score, risk_level)
+        """
+        if not component_novelty:
+            return 50.0, RiskLevel.MEDIUM
+        
+        # Calculate weighted average (ingredients: 40%, process: 30%, combination: 30%)
+        weights = {"Ingredients": 0.4, "Process": 0.3, "Combination": 0.3}
+        total_weight = 0.0
+        weighted_score = 0.0
+        
+        for component in component_novelty:
+            weight = weights.get(component.component, 0.33)
+            weighted_score += component.score * weight
+            total_weight += weight
+        
+        novelty_score = weighted_score / total_weight if total_weight > 0 else 50.0
+        
+        # Determine risk level
+        if novelty_score >= 70:
+            risk_level = RiskLevel.LOW
+        elif novelty_score >= 40:
+            risk_level = RiskLevel.MEDIUM
+        else:
+            risk_level = RiskLevel.HIGH
+        
+        return novelty_score, risk_level
+    
+    def _identify_prior_art(self, request: PatentNoveltyRequest,
+                          traditional_context: List[Dict[str, Any]]) -> List[PriorArtReference]:
+        """Identify prior art references.
+        
+        Args:
+            request: Patent novelty request
+            traditional_context: Traditional knowledge context
+            
+        Returns:
+            List of prior art references
+        """
+        prior_art = []
+        
+        # Extract from traditional context
+        for ctx in traditional_context[:5]:  # Top 5 references
+            source = ctx["metadata"].get("source", "Unknown Source")
+            section = ctx["metadata"].get("section", "")
+            text = ctx["text"][:500]  # Increased from 200 to 500 characters
+            
+            # Calculate relevance based on score
+            score = ctx["metadata"].get("score", 0.5)
+            
+            prior_art.append(PriorArtReference(
+                source=source,
+                citation=f"{source}" + (f", {section}" if section else ""),
+                relevance=score,
+                description=text,
+                url=None
+            ))
+        
+        return prior_art
+    
+    def _analyze_section3p_compliance(self, request: PatentNoveltyRequest,
+                                     component_novelty: List[ComponentNovelty],
+                                     prior_art: List[PriorArtReference]) -> Section3pAnalysis:
+        """Analyze Section 3(p) compliance.
+        
+        Args:
+            request: Patent novelty request
+            component_novelty: Component novelty analyses
+            prior_art: Prior art references
+            
+        Returns:
+            Section 3(p) compliance analysis
+        """
+        # Use LLM for Section 3(p) analysis
+        prompt = f"""Analyze Section 3(p) compliance for this Ayurvedic formulation.
+
+Formulation: {request.formulation_name}
+Ingredients: {', '.join(request.ingredients)}
+Process: {request.process}
+Intended Use: {request.intended_use}
+Novelty Claim: {request.novelty_claim or 'None specified'}
+
+Component Novelty:
+{chr(10).join([f"{c.component}: {c.score}/100 - {c.analysis}" for c in component_novelty])}
+
+Prior Art Found: {len(prior_art)} references
+
+Section 3(p) of Indian Patents Act excludes:
+- Mere discovery of traditional knowledge
+- Mere aggregation of known properties
+- Traditional formulations without innovation
+
+But allows:
+- Novel combinations with synergistic effects
+- Process innovations
+- Enhanced bioavailability methods
+- New therapeutic applications
+
+Provide your analysis in this JSON format:
+{{
+  "status": "Patentable|Partially Patentable|Not Patentable|Uncertain",
+  "analysis": "detailed explanation of Section 3(p) compliance",
+  "patentable_elements": ["element1", "element2"],
+  "non_patentable_elements": ["element1", "element2"],
+  "recommendations": ["recommendation1", "recommendation2"]
+}}"""
+        
+        try:
+            response = self.llm.invoke([HumanMessage(content=prompt)])
+            response_text = response.content
+            
+            # Parse JSON
+            import json
+            import re
+            json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
+            if json_match:
+                result = json.loads(json_match.group())
+                status_str = result.get("status", "Uncertain")
+                analysis = result.get("analysis", "Section 3(p) analysis completed")
+                patentable_elements = result.get("patentable_elements", [])
+                non_patentable_elements = result.get("non_patentable_elements", [])
+                recommendations = result.get("recommendations", [])
+            else:
+                status_str = "Uncertain"
+                analysis = "Could not parse Section 3(p) analysis"
+                patentable_elements = []
+                non_patentable_elements = []
+                recommendations = []
+        except Exception as e:
+            logger.warning(f"Section 3(p) analysis failed: {e}")
+            status_str = "Uncertain"
+            analysis = "Section 3(p) analysis unavailable"
+            patentable_elements = []
+            non_patentable_elements = []
+            recommendations = []
+        
+        # Map status string to enum
+        status_map = {
+            "Patentable": Section3pStatus.PATENTABLE,
+            "Partially Patentable": Section3pStatus.PARTIALLY_PATENTABLE,
+            "Not Patentable": Section3pStatus.NOT_PATENTABLE,
+            "Uncertain": Section3pStatus.UNCERTAIN
+        }
+        status = status_map.get(status_str, Section3pStatus.UNCERTAIN)
+        
+        return Section3pAnalysis(
+            status=status,
+            analysis=analysis,
+            patentable_elements=patentable_elements,
+            non_patentable_elements=non_patentable_elements,
+            recommendations=recommendations
+        )
+    
+    def _calculate_confidence(self, traditional_context: List[Dict[str, Any]],
+                             prior_art: List[PriorArtReference]) -> float:
+        """Calculate confidence in the analysis.
+        
+        Args:
+            traditional_context: Traditional knowledge context
+            prior_art: Prior art references
+            
+        Returns:
+            Confidence score (0-1)
+        """
+        # Base confidence
+        confidence = 0.7
+        
+        # Increase confidence if we found traditional knowledge
+        if len(traditional_context) > 0:
+            confidence += 0.1
+        
+        # Increase confidence if we found prior art
+        if len(prior_art) > 0:
+            confidence += 0.1
+        
+        # Cap at 0.95
+        confidence = min(confidence, 0.95)
+        
+        return confidence
 
 
 class CitationAgent:

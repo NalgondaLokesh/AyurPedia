@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { HiTrash, HiDocumentText, HiXMark, HiSparkles, HiShieldCheck, HiPlus, HiArrowDownTray } from 'react-icons/hi2';
+import { HiTrash, HiDocumentText, HiXMark, HiArrowDownTray } from 'react-icons/hi2';
 import { useChatContext } from '../../context/ChatContext';
 import { useApp } from '../../context/AppContext';
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
@@ -35,13 +35,6 @@ export const ChatInterface = () => {
     URL.revokeObjectURL(url);
   };
 
-  const QUICK_QUESTIONS = [
-    { text: 'What is Section 3(p) under the Indian Patents Act 1970?', tag: 'Patents' },
-    { text: 'What are the disclosure requirements under WIPO GRATK Treaty 2024?', tag: 'WIPO' },
-    { text: 'What are the rules for FSSAI Ayurveda-Aahar approval?', tag: 'Food / Aahar' },
-    { text: 'When is National Biodiversity Authority (NBA) approval needed?', tag: 'NBA' },
-  ];
-
   // Keyboard shortcuts
   useKeyboardShortcuts([
     { key: 'k', ctrlKey: true, callback: () => document.getElementById('chat-input')?.focus(), ignoreInInput: true },
@@ -51,7 +44,7 @@ export const ChatInterface = () => {
 
   return (
     <div className="max-w-5xl mx-auto px-3 sm:px-6 lg:px-8 py-3 sm:py-6">
-    <div className="flex flex-col h-chat bg-[#fffdf8] dark:bg-primary-950/40 backdrop-blur-xl rounded-3xl border border-stone-200/80 dark:border-primary-900/50 shadow-card overflow-hidden transition-all duration-300">
+    <div className="flex flex-col h-chat bg-[#fffdf8] dark:bg-primary-950/40 backdrop-blur-xl rounded-3xl border border-stone-200/80 dark:border-primary-900/50 shadow-card overflow-hidden transition-all duration-300 hover:shadow-lg">
       {/* Top Chat Toolbar */}
       <div className="flex items-center justify-between gap-2 px-3 sm:px-6 py-3 sm:py-3.5 bg-stone-50/80 dark:bg-primary-950/60 border-b border-stone-200/70 dark:border-primary-900/50 backdrop-blur-sm">
         <div className="flex items-center gap-2.5 min-w-0">
@@ -59,7 +52,7 @@ export const ChatInterface = () => {
           <div className="min-w-0">
             <h2 className="text-sm font-serif font-semibold text-stone-900 dark:text-stone-100 flex items-center gap-2 min-w-0">
               <span className="truncate"><span className="hidden sm:inline">Legal Intelligence </span>Session</span>
-              <span className="text-[11px] font-semibold text-primary-800 bg-accent-100 dark:bg-accent-500/15 dark:text-accent-200 px-2 py-0.5 rounded-full border border-accent-300/50 dark:border-accent-500/30 shrink-0">
+              <span className="text-[11px] font-semibold text-primary-800 bg-accent-100 dark:bg-accent-500/15 dark:text-accent-200 px-2 py-0.5 rounded-full border border-accent-300/50 dark:border-accent-500/30 shrink-0 badge-modern">
                 {jurisdiction}
               </span>
             </h2>
@@ -73,9 +66,9 @@ export const ChatInterface = () => {
               onClick={exportConversation}
               disabled={isLoading}
               title="Export conversation"
-              className="flex items-center gap-1 px-2 py-1.5 text-xs font-semibold text-stone-500 hover:text-primary-800 hover:bg-accent-100/60 dark:hover:bg-primary-900/40 rounded-lg transition-all duration-200 cursor-pointer focus-premium"
+              className="flex items-center gap-1 px-2 py-1.5 text-xs font-semibold text-stone-500 hover:text-primary-800 hover:bg-accent-100/60 dark:hover:bg-primary-900/40 rounded-lg transition-all duration-200 cursor-pointer focus-premium card-lift"
             >
-              <HiArrowDownTray className="w-4 h-4" />
+              <HiArrowDownTray className="w-4 h-4 icon-bounce" />
               <span className="hidden sm:inline">Export</span>
             </button>
           )}
@@ -85,9 +78,9 @@ export const ChatInterface = () => {
               onClick={clearMessages}
               disabled={isLoading}
               title="Clear chat history"
-              className="flex items-center gap-1 px-2 py-1.5 text-xs font-semibold text-stone-500 hover:text-clay-600 hover:bg-clay-50 dark:hover:bg-clay-900/30 rounded-lg transition-all duration-200 cursor-pointer focus-premium"
+              className="flex items-center gap-1 px-2 py-1.5 text-xs font-semibold text-stone-500 hover:text-clay-600 hover:bg-clay-50 dark:hover:bg-clay-900/30 rounded-lg transition-all duration-200 cursor-pointer focus-premium card-lift"
             >
-              <HiTrash className="w-4 h-4" />
+              <HiTrash className="w-4 h-4 icon-bounce" />
               <span className="hidden sm:inline">Clear Chat</span>
             </button>
           )}
@@ -96,11 +89,11 @@ export const ChatInterface = () => {
 
       {/* Active Classification Context Banner */}
       {activeClassification && (
-        <div className="flex items-center justify-between px-4 py-2.5 bg-accent-50 dark:bg-accent-500/10 border-b border-accent-200/70 dark:border-accent-500/30 text-xs text-stone-900 dark:text-stone-100 fade-in">
+        <div className="flex items-center justify-between px-4 py-2.5 bg-accent-50 dark:bg-accent-500/10 border-b border-accent-200/70 dark:border-accent-500/30 text-xs text-stone-900 dark:text-stone-100 slide-in-top">
           <div className="flex items-center gap-2 overflow-hidden">
-            <HiDocumentText className="w-4 h-4 text-accent-700 dark:text-accent-300 shrink-0" />
+            <HiDocumentText className="w-4 h-4 text-accent-700 dark:text-accent-300 shrink-0 icon-bounce" />
             <span className="font-bold shrink-0">Active Context:</span>
-            <span className="px-2 py-0.5 bg-primary-800 text-white rounded-md font-semibold text-[11px] shadow-sm">
+            <span className="px-2 py-0.5 bg-primary-800 text-white rounded-md font-semibold text-[11px] shadow-sm badge-modern">
               {activeClassification.category}
             </span>
             <span className="text-stone-600 dark:text-stone-400 truncate text-[11px] hidden sm:inline">
@@ -111,38 +104,10 @@ export const ChatInterface = () => {
             type="button"
             onClick={removeClassification}
             title="Remove classification from chat context"
-            className="p-1 text-stone-500 hover:text-stone-800 dark:hover:text-stone-200 hover:bg-accent-100 dark:hover:bg-primary-900/40 rounded-md transition-all duration-200 cursor-pointer focus-premium"
+            className="p-1 text-stone-500 hover:text-stone-800 dark:hover:text-stone-200 hover:bg-accent-100 dark:hover:bg-primary-900/40 rounded-md transition-all duration-200 cursor-pointer focus-premium card-lift"
           >
-            <HiXMark className="w-4 h-4" />
+            <HiXMark className="w-4 h-4 icon-bounce" />
           </button>
-        </div>
-      )}
-
-      {/* Quick Prompts on initial conversation */}
-      {messages.length <= 1 && (
-        <div className="px-4 sm:px-6 pt-4 pb-2 fade-in delay-200">
-          <div className="flex items-center gap-1.5 text-[11px] font-bold text-stone-500 dark:text-stone-400 uppercase tracking-[0.14em] mb-3">
-            <HiSparkles className="w-4 h-4 text-accent-500" />
-            <span>Suggested Inquiries</span>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-            {QUICK_QUESTIONS.map((q, idx) => (
-              <button
-                key={idx}
-                type="button"
-                disabled={isLoading}
-                onClick={() => sendMessage(q.text)}
-                className="text-left p-3 premium-card rounded-xl text-xs text-stone-700 dark:text-stone-300 transition-all duration-300 group cursor-pointer flex items-center justify-between gap-2"
-              >
-                <span className="font-medium group-hover:text-primary-800 dark:group-hover:text-accent-200 transition-colors">
-                  {q.text}
-                </span>
-                <span className="text-[10px] bg-stone-100 dark:bg-primary-900/50 text-stone-500 dark:text-stone-400 px-1.5 py-0.5 rounded font-mono shrink-0 group-hover:bg-accent-100 group-hover:text-accent-700 dark:group-hover:bg-accent-500/20 dark:group-hover:text-accent-200 transition-all">
-                  {q.tag}
-                </span>
-              </button>
-            ))}
-          </div>
         </div>
       )}
 

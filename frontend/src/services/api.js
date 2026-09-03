@@ -5,17 +5,22 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 45000,
+  timeout: 120000, // Increased to 2 minutes to handle LLM rate limit retries
   headers: {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
   },
 });
 
-// Request interceptor for logging/tracing
+// Request interceptor for logging/tracing and auth
 api.interceptors.request.use(
   (config) => {
     config.metadata = { startTime: new Date() };
+    // Add Authorization header if token exists
+    const token = localStorage.getItem('access_token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
     return config;
   },
   (error) => {

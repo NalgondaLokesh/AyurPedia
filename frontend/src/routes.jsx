@@ -6,6 +6,7 @@ import RegisterView from './views/RegisterView';
 import PrivacySettingsView from './views/PrivacySettingsView';
 import ChatInterface from './components/Chat/ChatInterface';
 import ClassifierFlow from './components/Classification/ClassifierFlow';
+import PatentNoveltyChecker from './components/Patent/PatentNoveltyChecker';
 // import GraphView from './views/GraphView'; // Disabled - Knowledge Graph not working
 import DisclaimerView from './views/DisclaimerView';
 import PrivacyView from './views/PrivacyView';
@@ -44,6 +45,11 @@ export const routes = [
     path: '/classify',
     element: <ProtectedRoute><ClassifierFlow /></ProtectedRoute>,
     title: 'Formulation Classifier',
+  },
+  {
+    path: '/patent',
+    element: <ProtectedRoute><PatentNoveltyChecker /></ProtectedRoute>,
+    title: 'Patent Novelty Checker',
   },
   // {
   //   path: '/graph',

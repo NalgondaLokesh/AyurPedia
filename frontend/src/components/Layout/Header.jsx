@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { HiChatBubbleLeftRight, HiDocumentMagnifyingGlass, HiBars3, HiXMark, HiUserGroup, HiUser, HiArrowRightOnRectangle, HiSun, HiMoon, HiCog } from 'react-icons/hi2';
+import { HiChatBubbleLeftRight, HiDocumentMagnifyingGlass, HiBars3, HiXMark, HiUserGroup, HiUser, HiArrowRightOnRectangle, HiSun, HiMoon, HiCog, HiSparkles } from 'react-icons/hi2';
 import { useApp } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
 import JurisdictionToggle from '../Common/JurisdictionToggle';
@@ -25,6 +25,7 @@ export const Header = () => {
     ? [
         { to: '/chat', label: 'Legal Chat', icon: HiChatBubbleLeftRight, tab: 'chat' },
         { to: '/classify', label: 'Classifier', icon: HiDocumentMagnifyingGlass, tab: 'classify' },
+        { to: '/patent', label: 'Patent Check', icon: HiSparkles, tab: 'patent' },
       ]
     : [];
 
@@ -37,13 +38,13 @@ export const Header = () => {
           
           {/* Logo & Brand */}
           <Link to={isAuthenticated ? '/chat' : '/'} className="flex items-center gap-3 shrink-0 group">
-            <div className="relative w-11 h-11 rounded-2xl bg-primary-800 flex items-center justify-center text-accent-300 ring-1 ring-primary-700/50 shadow-card group-hover:ring-accent-400/60 transition-all duration-300 group-hover:-translate-y-0.5">
+            <div className="relative w-11 h-11 rounded-2xl bg-primary-800 flex items-center justify-center text-accent-300 ring-1 ring-primary-700/50 shadow-card group-hover:ring-accent-400/60 transition-all duration-300 group-hover:-translate-y-0.5 group-hover:scale-105">
               <span className="absolute inset-1 rounded-xl border border-accent-400/20" />
-              <AyurMark className="w-6 h-6 relative z-10" />
+              <AyurMark className="w-6 h-6 relative z-10 icon-bounce" />
             </div>
             <div className="leading-none">
               <div className="flex items-center gap-1.5">
-                <span className="text-xl font-serif font-semibold tracking-tight text-primary-800 dark:text-stone-100">
+                <span className="text-xl font-serif font-semibold tracking-tight text-primary-800 dark:text-stone-100 group-hover:text-primary-700 dark:group-hover:text-accent-300 transition-colors duration-300">
                   Ayur<span className="text-accent-600 dark:text-accent-400">Pedia</span>
                 </span>
               </div>
@@ -64,13 +65,13 @@ export const Header = () => {
                   key={to}
                   to={to}
                   onClick={() => tab && setActiveTab(tab)}
-                  className={`relative flex items-center gap-1.5 px-4 py-1.5 text-xs font-semibold rounded-full transition-all duration-300 ${
+                  className={`relative flex items-center gap-1.5 px-4 py-1.5 text-xs font-semibold rounded-full transition-all duration-300 card-lift ${
                     active
                       ? 'bg-primary-800 text-stone-50 shadow-card'
                       : 'text-stone-600 dark:text-stone-300 hover:text-primary-800 dark:hover:text-stone-100 hover:bg-white/70 dark:hover:bg-primary-900/40'
                   }`}
                 >
-                  <Icon className={`w-4 h-4 ${active ? 'text-accent-300' : 'text-primary-600 dark:text-primary-400'}`} />
+                  <Icon className={`w-4 h-4 ${active ? 'text-accent-300 icon-bounce' : 'text-primary-600 dark:text-primary-400'}`} />
                   <span>{label}</span>
                 </Link>
               );
@@ -85,20 +86,20 @@ export const Header = () => {
             <button
               type="button"
               onClick={toggleTheme}
-              className="p-2 text-stone-500 hover:text-primary-800 dark:text-stone-400 dark:hover:text-accent-300 rounded-xl hover:bg-stone-100 dark:hover:bg-primary-900/40 transition-all duration-200 cursor-pointer focus-premium"
+              className="p-2 text-stone-500 hover:text-primary-800 dark:text-stone-400 dark:hover:text-accent-300 rounded-xl hover:bg-stone-100 dark:hover:bg-primary-900/40 transition-all duration-200 cursor-pointer focus-premium card-lift"
               title={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
             >
-              {theme === 'light' ? <HiMoon className="w-5 h-5" /> : <HiSun className="w-5 h-5" />}
+              {theme === 'light' ? <HiMoon className="w-5 h-5 icon-bounce" /> : <HiSun className="w-5 h-5 icon-bounce" />}
             </button>
             
             {isAuthenticated ? (
               <>
                 <Link
                   to="/settings"
-                  className="p-2 text-stone-500 hover:text-primary-800 dark:text-stone-400 dark:hover:text-accent-300 rounded-xl hover:bg-stone-100 dark:hover:bg-primary-900/40 transition-all duration-200 cursor-pointer focus-premium"
+                  className="p-2 text-stone-500 hover:text-primary-800 dark:text-stone-400 dark:hover:text-accent-300 rounded-xl hover:bg-stone-100 dark:hover:bg-primary-900/40 transition-all duration-200 cursor-pointer focus-premium card-lift"
                   title="Settings"
                 >
-                  <HiCog className="w-5 h-5" />
+                  <HiCog className="w-5 h-5 icon-bounce" />
                 </Link>
                 <div className="flex items-center gap-2 px-3 py-1.5 bg-stone-100 dark:bg-primary-950/50 rounded-xl border border-stone-200 dark:border-primary-900/50">
                   <HiUser className="w-4 h-4 text-primary-600 dark:text-accent-400" />
@@ -109,18 +110,18 @@ export const Header = () => {
                 <button
                   type="button"
                   onClick={logout}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-stone-700 hover:bg-stone-100 dark:text-stone-300 dark:hover:bg-primary-900/40 rounded-xl transition-all duration-200 cursor-pointer focus-premium"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-stone-700 hover:bg-stone-100 dark:text-stone-300 dark:hover:bg-primary-900/40 rounded-xl transition-all duration-200 cursor-pointer focus-premium card-lift"
                   title="Logout"
                 >
-                  <HiArrowRightOnRectangle className="w-4 h-4" />
+                  <HiArrowRightOnRectangle className="w-4 h-4 icon-bounce" />
                 </button>
               </>
             ) : (
               <Link
                 to="/login"
-                className="inline-flex items-center gap-1.5 px-4 py-1.5 text-xs font-semibold text-primary-800 dark:text-stone-200 bg-white dark:bg-primary-900/40 hover:bg-stone-100 dark:hover:bg-primary-900/60 border border-stone-200 dark:border-primary-800/60 rounded-xl transition-all duration-200 cursor-pointer focus-premium"
+                className="inline-flex items-center gap-1.5 px-4 py-1.5 text-xs font-semibold text-primary-800 dark:text-stone-200 bg-white dark:bg-primary-900/40 hover:bg-stone-100 dark:hover:bg-primary-900/60 border border-stone-200 dark:border-primary-800/60 rounded-xl transition-all duration-200 cursor-pointer focus-premium card-lift"
               >
-                <HiUser className="w-4 h-4 text-primary-600 dark:text-accent-400" />
+                <HiUser className="w-4 h-4 text-primary-600 dark:text-accent-400 icon-bounce" />
                 <span>Sign In</span>
               </Link>
             )}
@@ -128,9 +129,9 @@ export const Header = () => {
             <button
               type="button"
               onClick={() => openFacilitatorModal()}
-              className="inline-flex items-center gap-1.5 px-4 py-1.5 text-xs font-semibold text-white btn-premium rounded-xl transition-all duration-200 cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-4 py-1.5 text-xs font-semibold text-white btn-premium btn-modern rounded-xl transition-all duration-200 cursor-pointer"
             >
-              <HiUserGroup className="w-4 h-4 text-accent-300" />
+              <HiUserGroup className="w-4 h-4 text-accent-300 icon-bounce" />
               <span>Facilitator</span>
             </button>
           </div>
@@ -141,18 +142,18 @@ export const Header = () => {
               type="button"
               onClick={toggleTheme}
               aria-label="Toggle theme"
-              className="p-2.5 text-stone-500 hover:text-primary-800 dark:text-stone-400 dark:hover:text-accent-300 rounded-xl hover:bg-stone-100 dark:hover:bg-primary-900/40 transition-colors cursor-pointer"
+              className="p-2.5 text-stone-500 hover:text-primary-800 dark:text-stone-400 dark:hover:text-accent-300 rounded-xl hover:bg-stone-100 dark:hover:bg-primary-900/40 transition-colors cursor-pointer card-lift"
             >
-              {theme === 'light' ? <HiMoon className="w-5 h-5" /> : <HiSun className="w-5 h-5" />}
+              {theme === 'light' ? <HiMoon className="w-5 h-5 icon-bounce" /> : <HiSun className="w-5 h-5 icon-bounce" />}
             </button>
             <button
               type="button"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               aria-label="Open menu"
               aria-expanded={mobileMenuOpen}
-              className="p-2.5 text-stone-600 dark:text-stone-300 hover:text-primary-800 hover:bg-stone-100 dark:hover:bg-primary-900/40 rounded-xl focus:outline-none"
+              className="p-2.5 text-stone-600 dark:text-stone-300 hover:text-primary-800 hover:bg-stone-100 dark:hover:bg-primary-900/40 rounded-xl focus:outline-none card-lift"
             >
-              {mobileMenuOpen ? <HiXMark className="w-6 h-6" /> : <HiBars3 className="w-6 h-6" />}
+              {mobileMenuOpen ? <HiXMark className="w-6 h-6 icon-bounce" /> : <HiBars3 className="w-6 h-6 icon-bounce" />}
             </button>
           </div>
 
@@ -185,13 +186,13 @@ export const Header = () => {
                         if (tab) setActiveTab(tab);
                         setMobileMenuOpen(false);
                       }}
-                      className={`flex flex-col items-center justify-center gap-1.5 p-3 text-xs font-semibold rounded-2xl border transition-all duration-200 ${
+                      className={`flex flex-col items-center justify-center gap-1.5 p-3 text-xs font-semibold rounded-2xl border transition-all duration-200 card-lift ${
                       active
                         ? 'bg-primary-800 border-primary-700 text-stone-50 shadow-card'
                         : 'border-stone-200 dark:border-primary-900/50 text-stone-600 dark:text-stone-300 hover:bg-white/70 dark:hover:bg-primary-900/40'
                     }`}
                     >
-                      <Icon className={`w-5 h-5 ${active ? 'text-accent-300' : 'text-primary-600 dark:text-primary-400'}`} />
+                      <Icon className={`w-5 h-5 ${active ? 'text-accent-300 icon-bounce' : 'text-primary-600 dark:text-primary-400'}`} />
                       <span>{label}</span>
                     </Link>
                   );
@@ -203,9 +204,9 @@ export const Header = () => {
                 <Link
                   to="/settings"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="flex items-center justify-center gap-2 py-2.5 text-xs font-semibold text-stone-700 dark:text-stone-300 bg-stone-100 dark:bg-primary-950/50 hover:bg-stone-200 dark:hover:bg-primary-900/50 rounded-xl transition-all duration-200 border border-stone-200 dark:border-primary-900/50"
+                  className="flex items-center justify-center gap-2 py-2.5 text-xs font-semibold text-stone-700 dark:text-stone-300 bg-stone-100 dark:bg-primary-950/50 hover:bg-stone-200 dark:hover:bg-primary-900/50 rounded-xl transition-all duration-200 border border-stone-200 dark:border-primary-900/50 card-lift"
                 >
-                  <HiCog className="w-4 h-4" />
+                  <HiCog className="w-4 h-4 icon-bounce" />
                   <span>Settings</span>
                 </Link>
                 <button
@@ -214,9 +215,9 @@ export const Header = () => {
                     setMobileMenuOpen(false);
                     logout();
                   }}
-                  className="flex items-center justify-center gap-2 py-2.5 text-xs font-semibold text-stone-700 dark:text-stone-300 bg-stone-100 dark:bg-primary-950/50 hover:bg-stone-200 dark:hover:bg-primary-900/50 rounded-xl transition-all duration-200 border border-stone-200 dark:border-primary-900/50"
+                  className="flex items-center justify-center gap-2 py-2.5 text-xs font-semibold text-stone-700 dark:text-stone-300 bg-stone-100 dark:bg-primary-950/50 hover:bg-stone-200 dark:hover:bg-primary-900/50 rounded-xl transition-all duration-200 border border-stone-200 dark:border-primary-900/50 card-lift"
                 >
-                  <HiArrowRightOnRectangle className="w-4 h-4" />
+                  <HiArrowRightOnRectangle className="w-4 h-4 icon-bounce" />
                   <span>Logout</span>
                 </button>
               </div>
@@ -224,9 +225,9 @@ export const Header = () => {
               <Link
                 to="/login"
                 onClick={() => setMobileMenuOpen(false)}
-                className="w-full flex items-center justify-center gap-2 py-2.5 text-xs font-bold text-primary-800 dark:text-stone-200 bg-white dark:bg-primary-900/40 border border-stone-200 dark:border-primary-800/60 rounded-xl transition-all duration-200"
+                className="w-full flex items-center justify-center gap-2 py-2.5 text-xs font-bold text-primary-800 dark:text-stone-200 bg-white dark:bg-primary-900/40 border border-stone-200 dark:border-primary-800/60 rounded-xl transition-all duration-200 card-lift"
               >
-                <HiUser className="w-4 h-4 text-primary-600 dark:text-accent-400" />
+                <HiUser className="w-4 h-4 text-primary-600 dark:text-accent-400 icon-bounce" />
                 <span>Sign In</span>
               </Link>
             )}
@@ -237,9 +238,9 @@ export const Header = () => {
                 setMobileMenuOpen(false);
                 openFacilitatorModal();
               }}
-              className="w-full flex items-center justify-center gap-2 py-2.5 text-xs font-bold text-white btn-premium rounded-xl transition-all duration-200"
+              className="w-full flex items-center justify-center gap-2 py-2.5 text-xs font-bold text-white btn-premium btn-modern rounded-xl transition-all duration-200"
             >
-              <HiUserGroup className="w-4 h-4 text-accent-300" />
+              <HiUserGroup className="w-4 h-4 text-accent-300 icon-bounce" />
               <span>Contact Legal Facilitator</span>
             </button>
           </div>

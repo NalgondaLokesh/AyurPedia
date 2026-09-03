@@ -22,6 +22,7 @@ class ChatRequest(BaseModel):
     language: str = Field(default="en", description="Target response language (e.g. 'en', 'hi', 'ta', 'te', 'mr', 'bn', etc.)")
     conversation_id: Optional[str] = Field(None, description="Optional conversation ID for context")
     classification: Optional[Dict[str, Any]] = Field(None, description="Optional classification override")
+    user_id: Optional[str] = Field(None, description="User ID for data isolation (set by backend)")
     
     class Config:
         json_schema_extra = {
@@ -37,6 +38,7 @@ class ChatResponse(BaseModel):
     response: str = Field(..., description="Generated response")
     citations: List[Citation] = Field(default_factory=list, description="List of citations")
     confidence: str = Field(..., description="Confidence level: High, Medium, or Low")
+    confidence_score: Optional[float] = Field(None, description="Numeric confidence score (0-1)")
     disclaimer: str = Field(
         default="This is information, not legal advice. Consult a qualified legal professional.",
         description="Legal disclaimer"
@@ -58,6 +60,7 @@ class ChatResponse(BaseModel):
                     }
                 ],
                 "confidence": "High",
+                "confidence_score": 0.85,
                 "disclaimer": "This is information, not legal advice. Consult a qualified legal professional.",
                 "classification": "Proprietary",
                 "jurisdiction": "International"

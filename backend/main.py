@@ -21,7 +21,7 @@ from app.core.neo4j import get_neo4j
 from app.rag.retriever import Retriever
 from app.graph.agents import get_agentic_rag
 from app.api.chat import set_chat_service
-from app.api import chat_router, health_router, conversations_router, facilitator_router, auth_router, conversations_auth_router, classify_router
+from app.api import chat_router, health_router, conversations_router, facilitator_router, auth_router, conversations_auth_router, classify_router, patent_router
 from app.services.chat_service import ChatService
 
 
@@ -129,6 +129,8 @@ async def lifespan(app: FastAPI):
         print("  GET  /api/classify             - List classifications")
         print("  GET  /api/classify/categories  - Get classification categories")
         print("  POST /api/classify/test        - Test classification endpoint")
+        print("  POST /api/patent/novelty-check - Patent novelty analysis")
+        print("  GET  /api/patent/section3p-info - Section 3(p) information")
         
         print(f"\n[OK] FastAPI server starting at http://localhost:8000")
         print("=" * 60 + "\n")
@@ -202,6 +204,7 @@ app.include_router(facilitator_router)
 app.include_router(auth_router, prefix="/api")
 app.include_router(conversations_auth_router, prefix="/api")
 app.include_router(classify_router, prefix="/api")
+app.include_router(patent_router, prefix="/api")
 
 
 # Global exception handlers

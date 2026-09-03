@@ -4,6 +4,7 @@ Handles business logic for chat queries.
 """
 
 import logging
+import re
 from typing import Dict, Any, Optional
 from ..rag.chains import RAGChain
 from ..models.chat import ChatRequest, ChatResponse, Citation
@@ -12,6 +13,57 @@ from ..models.chat import ChatRequest, ChatResponse, Citation
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+
+# Jurisdiction-specific keywords
+INDIA_KEYWORDS = [
+    'section 3(p)', 'section 3p', 'patents act 1970', 'indian patents act',
+    'national biodiversity authority', 'nba', 'biological diversity act 2002',
+    'fssai', 'ayurveda-aahar', 'ayurveda aahar', 'food safety',
+    'tkdl', 'traditional knowledge digital library',
+    'indian patent office', 'indian ipr',
+    'drugs and cosmetics act', 'ayurvedic pharmacopoeia'
+]
+
+INTERNATIONAL_KEYWORDS = [
+    'wipo gratk', 'gratk treaty', 'wipo treaty',
+    'nagoya protocol', 'access and benefit-sharing', 'abs',
+    'trips agreement', 'trips', 'wto',
+    'genetic resources', 'traditional knowledge',
+    'international treaty', 'united nations',
+    'cbd', 'convention on biological diversity',
+    'patent cooperation treaty', 'pct'
+]
+
+
+def detect_jurisdiction_mismatch(query: str, selected_jurisdiction: str) -> Optional[str]:
+    """Detect if query belongs to a different jurisdiction than selected.
+    
+    Args:
+        query: User query text
+        selected_jurisdiction: Selected jurisdiction (India, International, Both)
+        
+    Returns:
+        Error message if mismatch detected, None otherwise
+    """
+    if selected_jurisdiction == 'Both':
+        return None  # Both allows any query
+    
+    query_lower = query.lower()
+    
+    if selected_jurisdiction == 'India':
+        # Check for international keywords
+        for keyword in INTERNATIONAL_KEYWORDS:
+            if keyword in query_lower:
+                return f"This query appears to be about international frameworks ({keyword}). Please switch to the 'International' jurisdiction or use 'Both' to search across all frameworks."
+    
+    elif selected_jurisdiction == 'International':
+        # Check for India-specific keywords
+        for keyword in INDIA_KEYWORDS:
+            if keyword in query_lower:
+                return f"This query appears to be about Indian regulations ({keyword}). Please switch to the 'India' jurisdiction or use 'Both' to search across all frameworks."
+    
+    return None
 
 
 class ChatService:
@@ -36,6 +88,17 @@ class ChatService:
             ChatResponse with generated answer and citations
         """
         logger.info(f"Processing query: '{request.query}' in jurisdiction: {request.jurisdiction}")
+        
+        # Check for jurisdiction mismatch
+        mismatch_error = detect_jurisdiction_mismatch(request.query, request.jurisdiction)
+        if mismatch_error:
+            logger.warning(f"Jurisdiction mismatch detected: {mismatch_error}")
+            return ChatResponse(
+                response=mismatch_error,
+                citations=[],
+                confidence="Low",
+                jurisdiction=request.jurisdiction
+            )
         
         try:
             # Use agentic RAG
@@ -69,6 +132,7 @@ class ChatService:
     def persist_conversation(self, request: ChatRequest, response: ChatResponse) -> None:
         """Persist user query and AI response to MongoDB."""
         conv_id = request.conversation_id
+        user_id = getattr(request, 'user_id', None)
         if not conv_id:
             return
         try:
@@ -81,7 +145,8 @@ class ChatService:
                 "id": f"usr_{int(datetime.utcnow().timestamp()*1000)}",
                 "sender": "user",
                 "text": request.query,
-                "timestamp": datetime.utcnow().isoformat()
+                "timestamp": datetime.utcnow().isoformat(),
+                "user_id": user_id
             }
             assistant_msg = {
                 "id": f"ast_{int(datetime.utcnow().timestamp()*1000)}",
@@ -91,17 +156,18 @@ class ChatService:
                 "confidence": response.confidence,
                 "jurisdiction": response.jurisdiction,
                 "disclaimer": response.disclaimer,
-                "timestamp": datetime.utcnow().isoformat()
+                "timestamp": datetime.utcnow().isoformat(),
+                "user_id": user_id
             }
             
             try:
                 loop = asyncio.get_running_loop()
-                loop.create_task(mongo.save_message(conv_id, user_msg, request.jurisdiction, getattr(request, 'language', 'en')))
-                loop.create_task(mongo.save_message(conv_id, assistant_msg, request.jurisdiction, getattr(request, 'language', 'en')))
+                loop.create_task(mongo.save_message(conv_id, user_msg, request.jurisdiction, getattr(request, 'language', 'en'), user_id))
+                loop.create_task(mongo.save_message(conv_id, assistant_msg, request.jurisdiction, getattr(request, 'language', 'en'), user_id))
             except RuntimeError:
                 # If running outside async event loop
-                asyncio.run(mongo.save_message(conv_id, user_msg, request.jurisdiction, getattr(request, 'language', 'en')))
-                asyncio.run(mongo.save_message(conv_id, assistant_msg, request.jurisdiction, getattr(request, 'language', 'en')))
+                asyncio.run(mongo.save_message(conv_id, user_msg, request.jurisdiction, getattr(request, 'language', 'en'), user_id))
+                asyncio.run(mongo.save_message(conv_id, assistant_msg, request.jurisdiction, getattr(request, 'language', 'en'), user_id))
         except Exception as e:
             logger.warning(f"Failed to persist conversation: {e}")
     
@@ -124,11 +190,22 @@ class ChatService:
                 section=citation.get('section', '')
             ))
         
+        # Calculate numeric confidence score from confidence level
+        confidence_level = rag_result.get('confidence', 'Low')
+        confidence_score = None
+        if confidence_level == 'High':
+            confidence_score = 0.85
+        elif confidence_level == 'Medium':
+            confidence_score = 0.60
+        elif confidence_level == 'Low':
+            confidence_score = 0.35
+        
         # Handle agentic RAG additional fields
         response = ChatResponse(
             response=rag_result.get('response', ''),
             citations=citations,
-            confidence=rag_result.get('confidence', 'Low'),
+            confidence=confidence_level,
+            confidence_score=confidence_score,
             jurisdiction=request.jurisdiction
         )
         

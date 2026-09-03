@@ -93,7 +93,7 @@ class MongoDBManager:
     # -------------------------------------------------------------
     # Chat & Conversation Persistence
     # -------------------------------------------------------------
-    async def save_message(self, conversation_id: str, message: Dict[str, Any], jurisdiction: str = "India", language: str = "en") -> bool:
+    async def save_message(self, conversation_id: str, message: Dict[str, Any], jurisdiction: str = "India", language: str = "en", user_id: Optional[str] = None) -> bool:
         """Save or append a message to a conversation."""
         now = datetime.utcnow().isoformat()
         if self.is_connected and self.db is not None:
@@ -104,7 +104,8 @@ class MongoDBManager:
                         "$setOnInsert": {
                             "created_at": now,
                             "jurisdiction": jurisdiction,
-                            "language": language
+                            "language": language,
+                            "user_id": user_id
                         },
                         "$set": {"updated_at": now},
                         "$push": {"messages": message}
@@ -123,6 +124,7 @@ class MongoDBManager:
                 "updated_at": now,
                 "jurisdiction": jurisdiction,
                 "language": language,
+                "user_id": user_id,
                 "messages": []
             }
         self._memory_store["conversations"][conversation_id]["updated_at"] = now
@@ -140,12 +142,13 @@ class MongoDBManager:
         
         return self._memory_store["conversations"].get(conversation_id)
 
-    async def list_conversations(self, limit: int = 20) -> List[Dict[str, Any]]:
-        """List recent conversation summaries."""
+    async def list_conversations(self, limit: int = 20, user_id: Optional[str] = None) -> List[Dict[str, Any]]:
+        """List recent conversation summaries for a specific user."""
         if self.is_connected and self.db is not None:
             try:
+                query = {"user_id": user_id} if user_id else {}
                 cursor = self.db.conversations.find(
-                    {},
+                    query,
                     {"_id": 0, "conversation_id": 1, "created_at": 1, "updated_at": 1, "jurisdiction": 1, "language": 1, "messages": {"$slice": -1}}
                 ).sort("updated_at", -1).limit(limit)
                 return await cursor.to_list(length=limit)
@@ -153,16 +156,19 @@ class MongoDBManager:
                 logger.error(f"Failed to list conversations from MongoDB: {e}")
         
         convs = list(self._memory_store["conversations"].values())
+        if user_id:
+            convs = [c for c in convs if c.get("user_id") == user_id]
         convs.sort(key=lambda x: x.get("updated_at", ""), reverse=True)
         return convs[:limit]
 
     # -------------------------------------------------------------
     # Formulation Classification Persistence
     # -------------------------------------------------------------
-    async def save_classification(self, classification_data: Dict[str, Any]) -> str:
+    async def save_classification(self, classification_data: Dict[str, Any], user_id: Optional[str] = None) -> str:
         """Save a completed formulation classification result."""
         now = datetime.utcnow().isoformat()
         classification_data["created_at"] = now
+        classification_data["user_id"] = user_id
         
         if self.is_connected and self.db is not None:
             try:
@@ -174,25 +180,30 @@ class MongoDBManager:
         self._memory_store["classifications"].append(classification_data)
         return "mem_" + str(len(self._memory_store["classifications"]))
 
-    async def list_classifications(self, limit: int = 20) -> List[Dict[str, Any]]:
-        """Retrieve recent classification records."""
+    async def list_classifications(self, limit: int = 20, user_id: Optional[str] = None) -> List[Dict[str, Any]]:
+        """Retrieve recent classification records for a specific user."""
         if self.is_connected and self.db is not None:
             try:
-                cursor = self.db.classifications.find({}, {"_id": 0}).sort("created_at", -1).limit(limit)
+                query = {"user_id": user_id} if user_id else {}
+                cursor = self.db.classifications.find(query, {"_id": 0}).sort("created_at", -1).limit(limit)
                 return await cursor.to_list(length=limit)
             except Exception as e:
                 logger.error(f"Failed to list classifications: {e}")
                 
-        return sorted(self._memory_store["classifications"], key=lambda x: x.get("created_at", ""), reverse=True)[:limit]
+        classifications = self._memory_store["classifications"]
+        if user_id:
+            classifications = [c for c in classifications if c.get("user_id") == user_id]
+        return sorted(classifications, key=lambda x: x.get("created_at", ""), reverse=True)[:limit]
 
     # -------------------------------------------------------------
     # Facilitator Escalation Persistence
     # -------------------------------------------------------------
-    async def save_facilitator_request(self, request_data: Dict[str, Any]) -> str:
+    async def save_facilitator_request(self, request_data: Dict[str, Any], user_id: Optional[str] = None) -> str:
         """Save human facilitator escalation request."""
         now = datetime.utcnow().isoformat()
         request_data["created_at"] = now
         request_data["status"] = request_data.get("status", "Pending")
+        request_data["user_id"] = user_id
         
         if self.is_connected and self.db is not None:
             try:

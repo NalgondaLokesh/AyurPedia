@@ -23,7 +23,7 @@ export const LoginView = () => {
   };
 
   const inputClass =
-    'w-full pl-10 pr-4 py-3 bg-stone-50 dark:bg-primary-950/50 border border-stone-200 dark:border-primary-900/50 rounded-xl text-stone-900 dark:text-stone-100 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-accent-400/25 focus:border-primary-500 transition-all';
+    'w-full pl-10 pr-4 py-3 bg-stone-50 dark:bg-primary-950/50 border border-stone-200 dark:border-primary-900/50 rounded-xl text-stone-900 dark:text-stone-100 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-accent-400/25 focus:border-primary-500 transition-all input-modern';
 
   return (
     <div className="relative min-h-view flex items-center justify-center px-4 py-10 sm:py-12 overflow-hidden">
@@ -34,9 +34,9 @@ export const LoginView = () => {
 
       <div className="relative w-full max-w-md">
         {/* Brand */}
-        <div className="text-center mb-8 scale-in">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-primary-800 text-accent-300 ring-1 ring-accent-400/25 rounded-2xl shadow-card mb-4">
-            <AyurMark className="w-8 h-8" />
+        <div className="text-center mb-8 bounce-in">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-primary-800 text-accent-300 ring-1 ring-accent-400/25 rounded-2xl shadow-card mb-4 group hover:scale-110 transition-transform duration-300">
+            <AyurMark className="w-8 h-8 icon-bounce" />
           </div>
           <h1 className="font-serif text-3xl font-semibold text-stone-900 dark:text-stone-100">
             Welcome back
@@ -47,7 +47,7 @@ export const LoginView = () => {
         </div>
 
         {/* Form Card */}
-        <div className="bg-[#fffdf8] dark:bg-primary-950/40 rounded-3xl p-8 shadow-card border border-stone-200/80 dark:border-primary-900/50">
+        <div className="bg-[#fffdf8] dark:bg-primary-950/40 rounded-3xl p-8 shadow-card border border-stone-200/80 dark:border-primary-900/50 card-lift">
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
               <label htmlFor="email" className="block text-sm font-semibold text-stone-700 dark:text-stone-300 mb-2">
@@ -72,7 +72,7 @@ export const LoginView = () => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 px-4 text-white btn-premium font-bold rounded-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="w-full py-3 px-4 text-white btn-premium btn-modern font-bold rounded-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {loading ? (
                 <>
@@ -99,7 +99,7 @@ export const LoginView = () => {
 
           <Link
             to="/register"
-            className="block w-full py-3 px-4 bg-stone-100 dark:bg-primary-900/40 hover:bg-stone-200 dark:hover:bg-primary-900/60 text-stone-700 dark:text-stone-200 font-semibold rounded-xl transition-all duration-300 text-center"
+            className="block w-full py-3 px-4 bg-stone-100 dark:bg-primary-900/40 hover:bg-stone-200 dark:hover:bg-primary-900/60 text-stone-700 dark:text-stone-200 font-semibold rounded-xl transition-all duration-300 text-center card-lift"
           >
             Create an Account
           </Link>

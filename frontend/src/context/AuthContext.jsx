@@ -66,6 +66,7 @@ export const AuthProvider = ({ children }) => {
       const data = await response.json();
       localStorage.setItem('access_token', data.access_token);
       localStorage.setItem('refresh_token', data.refresh_token);
+      localStorage.setItem('current_user_id', data.user.id);
       setToken(data.access_token);
       setUser(data.user);
       toast.success('Welcome back!');
@@ -94,6 +95,7 @@ export const AuthProvider = ({ children }) => {
       const data = await response.json();
       localStorage.setItem('access_token', data.access_token);
       localStorage.setItem('refresh_token', data.refresh_token);
+      localStorage.setItem('current_user_id', data.user.id);
       setToken(data.access_token);
       setUser(data.user);
       toast.success('Account created successfully!');

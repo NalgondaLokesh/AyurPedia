@@ -72,8 +72,14 @@ export const LandingView = () => {
         </div>
 
         <div className="relative max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-14 pb-14 sm:pt-28 sm:pb-24 text-center">
+          {/* Badge */}
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-accent-50 dark:bg-accent-500/10 rounded-full border border-accent-200/50 dark:border-accent-500/30 mb-6 fade-in">
+            <span className="w-2 h-2 rounded-full bg-accent-500 animate-pulse"></span>
+            <span className="text-xs font-semibold text-accent-700 dark:text-accent-300 tracking-wide">AI-Powered Legal Intelligence</span>
+          </div>
+
           {/* Headline */}
-          <h1 className="font-serif font-semibold tracking-tightest text-stone-900 dark:text-stone-50 mb-6 fade-in">
+          <h1 className="font-serif font-semibold tracking-tightest text-stone-900 dark:text-stone-50 mb-6 fade-in delay-100">
             <span className="block text-[2.5rem] leading-[1.08] sm:text-6xl lg:text-[4.25rem] sm:leading-[1.05]">
               Ancient wisdom,
             </span>
@@ -82,35 +88,35 @@ export const LandingView = () => {
             </span>
           </h1>
 
-          <p className="text-base sm:text-lg text-stone-600 dark:text-stone-300 mb-9 sm:mb-10 max-w-2xl mx-auto leading-relaxed fade-in delay-100">
+          <p className="text-base sm:text-lg text-stone-600 dark:text-stone-300 mb-9 sm:mb-10 max-w-2xl mx-auto leading-relaxed fade-in delay-200">
             AyurPedia is your AI companion for navigating the intersection of Ayurvedic formulations
             and intellectual property law — grounded, cited, and multilingual.
           </p>
 
           {/* CTAs */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3 mb-12 sm:mb-14 fade-in delay-200">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3 mb-12 sm:mb-14 fade-in delay-300">
             <button
               onClick={() => navigate('/chat')}
-              className="group inline-flex items-center justify-center gap-2 w-full sm:w-auto px-7 py-3.5 text-sm font-semibold text-white btn-premium rounded-2xl cursor-pointer"
+              className="group inline-flex items-center justify-center gap-2 w-full sm:w-auto px-7 py-3.5 text-sm font-semibold text-white btn-premium btn-modern rounded-2xl cursor-pointer"
             >
-              <HiChatBubbleLeftRight className="w-5 h-5 text-accent-300" />
+              <HiChatBubbleLeftRight className="w-5 h-5 text-accent-300 icon-bounce" />
               <span>Start Legal Chat</span>
               <HiArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
             </button>
             <button
               onClick={() => navigate('/classify')}
-              className="inline-flex items-center justify-center gap-2 w-full sm:w-auto px-7 py-3.5 text-sm font-semibold text-primary-800 dark:text-stone-100 bg-white dark:bg-primary-900/40 hover:bg-stone-50 dark:hover:bg-primary-900/60 border border-stone-300/80 dark:border-primary-800/60 rounded-2xl shadow-subtle hover:shadow-card transition-all duration-300 active:scale-95 cursor-pointer"
+              className="inline-flex items-center justify-center gap-2 w-full sm:w-auto px-7 py-3.5 text-sm font-semibold text-primary-800 dark:text-stone-100 bg-white dark:bg-primary-900/40 hover:bg-stone-50 dark:hover:bg-primary-900/60 border border-stone-300/80 dark:border-primary-800/60 rounded-2xl shadow-subtle hover:shadow-card transition-all duration-300 active:scale-95 cursor-pointer card-lift"
             >
-              <HiDocumentMagnifyingGlass className="w-5 h-5 text-accent-600 dark:text-accent-400" />
+              <HiDocumentMagnifyingGlass className="w-5 h-5 text-accent-600 dark:text-accent-400 icon-bounce" />
               <span>Classify a Formulation</span>
             </button>
           </div>
 
           {/* Stats strip */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 max-w-3xl mx-auto rounded-3xl border border-stone-200/80 dark:border-primary-900/40 bg-white/60 dark:bg-primary-950/30 backdrop-blur-sm divide-x divide-y sm:divide-y-0 divide-stone-200/70 dark:divide-primary-900/40 overflow-hidden fade-in delay-300">
+          <div className="grid grid-cols-2 sm:grid-cols-4 max-w-3xl mx-auto rounded-3xl border border-stone-200/80 dark:border-primary-900/40 bg-white/60 dark:bg-primary-950/30 backdrop-blur-sm divide-x divide-y sm:divide-y-0 divide-stone-200/70 dark:divide-primary-900/40 overflow-hidden fade-in delay-400 card-lift">
             {STATS.map((stat, idx) => (
-              <div key={idx} className="p-4 sm:p-5">
-                <div className="font-serif text-3xl sm:text-4xl font-semibold text-primary-800 dark:text-stone-100">
+              <div key={idx} className="p-4 sm:p-5 group hover:bg-stone-50/50 dark:hover:bg-primary-900/20 transition-colors duration-300">
+                <div className="font-serif text-3xl sm:text-4xl font-semibold text-primary-800 dark:text-stone-100 group-hover:scale-105 transition-transform duration-300">
                   {stat.value}<span className="text-accent-500">{stat.suffix}</span>
                 </div>
                 <div className="text-[11px] text-stone-500 dark:text-stone-400 font-medium mt-1 tracking-wide uppercase">{stat.label}</div>
@@ -127,7 +133,7 @@ export const LandingView = () => {
                 <HiBookOpen className="w-4 h-4" /> Grounded in
               </span>
               {FRAMEWORKS.map((f, i) => (
-                <span key={i} className="text-xs font-semibold tracking-wide">{f}</span>
+                <span key={i} className="text-xs font-semibold tracking-wide badge-modern badge-primary">{f}</span>
               ))}
             </div>
           </div>
@@ -154,13 +160,13 @@ export const LandingView = () => {
             {FEATURES.map((feature, idx) => (
               <div
                 key={idx}
-                className="group premium-card card-accent-top p-6 sm:p-7 rounded-2xl cursor-default slide-in-bottom"
+                className="group premium-card card-accent-top p-6 sm:p-7 rounded-2xl cursor-default slide-in-bottom card-lift"
                 style={{ animationDelay: `${0.06 * idx}s` }}
               >
-                <div className="w-12 h-12 rounded-xl bg-primary-800 text-accent-300 flex items-center justify-center ring-1 ring-primary-700/40 mb-5 transition-all duration-300 group-hover:bg-primary-700 group-hover:-translate-y-0.5">
-                  <feature.icon className="w-6 h-6" />
+                <div className="w-12 h-12 rounded-xl bg-primary-800 text-accent-300 flex items-center justify-center ring-1 ring-primary-700/40 mb-5 transition-all duration-300 group-hover:bg-primary-700 group-hover:scale-110 group-hover:-translate-y-0.5">
+                  <feature.icon className="w-6 h-6 icon-bounce" />
                 </div>
-                <h3 className="font-serif text-lg font-semibold text-stone-900 dark:text-stone-100 mb-2">
+                <h3 className="font-serif text-lg font-semibold text-stone-900 dark:text-stone-100 mb-2 group-hover:text-primary-700 dark:group-hover:text-accent-300 transition-colors duration-300">
                   {feature.title}
                 </h3>
                 <p className="text-sm text-stone-600 dark:text-stone-400 leading-relaxed">
@@ -188,12 +194,12 @@ export const LandingView = () => {
             {/* connecting line */}
             <div className="hidden md:block absolute top-10 left-[16%] right-[16%] h-px bg-gradient-to-r from-transparent via-accent-400/40 to-transparent" />
             {STEPS.map((item, idx) => (
-              <div key={idx} className="relative flex flex-col items-center text-center">
-                <div className="relative w-20 h-20 rounded-full bg-stone-50 dark:bg-primary-900/60 border border-accent-400/40 flex items-center justify-center text-primary-800 dark:text-accent-300 shadow-subtle mb-6">
+              <div key={idx} className="relative flex flex-col items-center text-center group">
+                <div className="relative w-20 h-20 rounded-full bg-stone-50 dark:bg-primary-900/60 border border-accent-400/40 flex items-center justify-center text-primary-800 dark:text-accent-300 shadow-subtle mb-6 transition-all duration-300 group-hover:scale-110 group-hover:shadow-card group-hover:border-accent-500/60">
                   <span className="font-serif text-2xl font-semibold">{item.step}</span>
                   <span className="absolute -bottom-1.5 bg-accent-500 text-white text-[10px] font-bold w-6 h-6 rounded-full flex items-center justify-center shadow-card">{idx + 1}</span>
                 </div>
-                <h3 className="font-serif text-xl font-semibold text-stone-900 dark:text-stone-100 mb-2">
+                <h3 className="font-serif text-xl font-semibold text-stone-900 dark:text-stone-100 mb-2 group-hover:text-primary-700 dark:group-hover:text-accent-300 transition-colors duration-300">
                   {item.title}
                 </h3>
                 <p className="text-sm text-stone-600 dark:text-stone-400 leading-relaxed max-w-xs">
@@ -213,7 +219,7 @@ export const LandingView = () => {
           <div className="pattern-leaf absolute inset-0 opacity-30" />
         </div>
         <div className="relative max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-white/10 backdrop-blur-md rounded-full text-[11px] font-semibold mb-8 border border-accent-400/25 text-accent-100">
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-white/10 backdrop-blur-md rounded-full text-[11px] font-semibold mb-8 border border-accent-400/25 text-accent-100 bounce-in">
             <HiCheckCircle className="w-4 h-4 text-accent-300 shrink-0" />
             <span className="tracking-[0.12em] uppercase">Free to use &middot; No registration required</span>
           </div>
@@ -226,9 +232,9 @@ export const LandingView = () => {
           </p>
           <button
             onClick={() => navigate('/chat')}
-            className="group inline-flex items-center justify-center gap-2 w-full sm:w-auto px-8 py-4 text-sm font-semibold text-primary-900 btn-saffron rounded-2xl cursor-pointer"
+            className="group inline-flex items-center justify-center gap-2 w-full sm:w-auto px-8 py-4 text-sm font-semibold text-primary-900 btn-saffron btn-modern rounded-2xl cursor-pointer"
           >
-            <HiChatBubbleLeftRight className="w-5 h-5" />
+            <HiChatBubbleLeftRight className="w-5 h-5 icon-bounce" />
             <span>Get Started Now</span>
             <HiArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
           </button>

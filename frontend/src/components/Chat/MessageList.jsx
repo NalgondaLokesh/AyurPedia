@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { useChatContext } from '../../context/ChatContext';
 import CitationCard from './CitationCard';
 import ConfidenceBadge from '../Common/ConfidenceBadge';
@@ -71,7 +72,7 @@ export const MessageList = () => {
                   </div>
 
                   {message.confidence && (
-                    <ConfidenceBadge confidence={message.confidence} />
+                    <ConfidenceBadge confidence={message.confidence} score={message.confidence_score} />
                   )}
                 </div>
               )}
@@ -81,7 +82,7 @@ export const MessageList = () => {
                 {isUser ? (
                   <p className="whitespace-pre-wrap text-sm leading-relaxed">{message.text}</p>
                 ) : (
-                  <ReactMarkdown>{message.text}</ReactMarkdown>
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.text}</ReactMarkdown>
                 )}
               </div>
 

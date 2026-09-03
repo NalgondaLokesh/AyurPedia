@@ -3,6 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { sendMessage as apiSendMessage } from '../services/chatApi';
 import { translateText, detectLanguage } from '../services/translationApi';
 import { useApp } from './AppContext';
+import { useAuth } from './AuthContext';
 import toast from 'react-hot-toast';
 
 const ChatContext = createContext(null);
@@ -20,8 +21,28 @@ const INITIAL_WELCOME_MESSAGE = {
 
 export const ChatProvider = ({ children }) => {
   const { language, jurisdiction } = useApp();
+  const { user } = useAuth();
+  
+  // One-time cleanup of old localStorage keys on mount
+  useEffect(() => {
+    // Clear all old keys without jurisdiction suffix
+    const keysToRemove = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && (key.startsWith('ayurpedia_chat_messages_') || key.startsWith('ayurpedia_conv_id_'))) {
+        // Check if key doesn't have jurisdiction suffix (no _India, _International, _Both)
+        if (!key.match(/_(India|International|Both)$/)) {
+          keysToRemove.push(key);
+        }
+      }
+    }
+    keysToRemove.forEach(key => localStorage.removeItem(key));
+    console.log('Cleared old localStorage keys:', keysToRemove);
+  }, []); // Run once on mount
+
   const [messages, setMessages] = useState(() => {
-    const saved = localStorage.getItem('ayurpedia_chat_messages');
+    const userId = user?.id || localStorage.getItem('current_user_id') || 'guest';
+    const saved = localStorage.getItem(`ayurpedia_chat_messages_${userId}_${jurisdiction}`);
     if (saved) {
       try {
         return JSON.parse(saved);
@@ -33,21 +54,53 @@ export const ChatProvider = ({ children }) => {
   });
 
   const [conversationId, setConversationId] = useState(() => {
-    return localStorage.getItem('ayurpedia_conv_id') || uuidv4();
+    const userId = user?.id || localStorage.getItem('current_user_id') || 'guest';
+    return localStorage.getItem(`ayurpedia_conv_id_${userId}_${jurisdiction}`) || uuidv4();
   });
 
   const [isLoading, setIsLoading] = useState(false);
   const [activeClassification, setActiveClassification] = useState(null);
   const [error, setError] = useState(null);
 
-  // Sync messages to localStorage
+  // Sync messages to localStorage with user-specific and jurisdiction-specific key
   useEffect(() => {
-    localStorage.setItem('ayurpedia_chat_messages', JSON.stringify(messages));
-  }, [messages]);
+    const userId = user?.id || localStorage.getItem('current_user_id') || 'guest';
+    localStorage.setItem(`ayurpedia_chat_messages_${userId}_${jurisdiction}`, JSON.stringify(messages));
+  }, [messages, user, jurisdiction]);
 
   useEffect(() => {
-    localStorage.setItem('ayurpedia_conv_id', conversationId);
-  }, [conversationId]);
+    const userId = user?.id || localStorage.getItem('current_user_id') || 'guest';
+    localStorage.setItem(`ayurpedia_conv_id_${userId}_${jurisdiction}`, conversationId);
+  }, [conversationId, user, jurisdiction]);
+
+  // Clear chat when user changes or logs out
+  useEffect(() => {
+    if (!user) {
+      // User logged out, clear chat
+      setMessages([INITIAL_WELCOME_MESSAGE]);
+      setConversationId(uuidv4());
+      setActiveClassification(null);
+    }
+  }, [user]);
+
+  // Load jurisdiction-specific chat when jurisdiction changes
+  useEffect(() => {
+    const userId = user?.id || localStorage.getItem('current_user_id') || 'guest';
+    const saved = localStorage.getItem(`ayurpedia_chat_messages_${userId}_${jurisdiction}`);
+    if (saved) {
+      try {
+        setMessages(JSON.parse(saved));
+      } catch (e) {
+        console.error('Failed to parse saved chat messages:', e);
+        setMessages([INITIAL_WELCOME_MESSAGE]);
+      }
+    } else {
+      setMessages([INITIAL_WELCOME_MESSAGE]);
+    }
+    // Generate new conversation ID for this jurisdiction
+    setConversationId(uuidv4());
+    setActiveClassification(null);
+  }, [jurisdiction, user]);
 
   /**
    * Send a chat message through translation and RAG pipeline

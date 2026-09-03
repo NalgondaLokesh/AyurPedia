@@ -586,12 +586,42 @@ body {
 
 .slide-in-bottom { animation: slideInBottom 0.55s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
 
+@keyframes slideInLeft {
+  from { opacity: 0; transform: translateX(-20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.slide-in-left { animation: slideInLeft 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.slide-in-right { animation: slideInRight 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+
+@keyframes slideInTop {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.slide-in-top { animation: slideInTop 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+
 @keyframes scaleIn {
   from { opacity: 0; transform: scale(0.96); }
   to { opacity: 1; transform: scale(1); }
 }
 
 .scale-in { animation: scaleIn 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+
+@keyframes bounceIn {
+  0% { opacity: 0; transform: scale(0.3); }
+  50% { transform: scale(1.05); }
+  70% { transform: scale(0.9); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+.bounce-in { animation: bounceIn 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
 
 @keyframes float {
   0%, 100% { transform: translateY(0px); }
@@ -609,6 +639,33 @@ body {
   animation: shimmer 2.2s infinite linear;
   background: linear-gradient(to right, transparent 0%, rgba(255, 252, 245, 0.5) 50%, transparent 100%);
   background-size: 1000px 100%;
+}
+
+@keyframes ripple {
+  0% { transform: scale(0); opacity: 1; }
+  100% { transform: scale(4); opacity: 0; }
+}
+
+.ripple-effect::after {
+  content: '';
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  background-image: radial-gradient(circle, rgba(207, 143, 34, 0.3) 10%, transparent 10.01%);
+  background-repeat: no-repeat;
+  background-position: 50%;
+  transform: scale(10, 10);
+  opacity: 0;
+  transition: transform 0.5s, opacity 0.5s;
+}
+
+.ripple-effect:active::after {
+  transform: scale(0, 0);
+  opacity: 0.3;
+  transition: 0s;
 }
 
 .pulse-glow { animation: pulseGlow 3s infinite ease-in-out; }
@@ -643,6 +700,8 @@ body {
 .delay-500 { animation-delay: 500ms; }
 
 .transition-smooth { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+.transition-fast { transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1); }
+.transition-slow { transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1); }
 
 /* Loading dots */
 @keyframes loadingDot {
@@ -669,6 +728,106 @@ body {
 }
 
 /* ============================================================
+   PROSE STYLES (Markdown content)
+   ============================================================ */
+
+.prose-ayurpedia {
+  @apply text-sm leading-relaxed;
+  max-width: none;
+}
+
+.prose-ayurpedia h1,
+.prose-ayurpedia h2,
+.prose-ayurpedia h3,
+.prose-ayurpedia h4,
+.prose-ayurpedia h5,
+.prose-ayurpedia h6 {
+  @apply font-serif font-semibold text-stone-900 dark:text-stone-100 mt-6 mb-3;
+}
+
+.prose-ayurpedia h1 { @apply text-2xl; }
+.prose-ayurpedia h2 { @apply text-xl; }
+.prose-ayurpedia h3 { @apply text-lg; }
+
+.prose-ayurpedia p {
+  @apply mb-4;
+}
+
+.prose-ayurpedia ul,
+.prose-ayurpedia ol {
+  @apply mb-4 pl-6;
+}
+
+.prose-ayurpedia ul {
+  @apply list-disc;
+}
+
+.prose-ayurpedia ol {
+  @apply list-decimal;
+}
+
+.prose-ayurpedia li {
+  @apply mb-1;
+}
+
+.prose-ayurpedia strong {
+  @apply font-semibold text-primary-800 dark:text-accent-300;
+}
+
+.prose-ayurpedia em {
+  @apply italic;
+}
+
+.prose-ayurpedia a {
+  @apply text-accent-600 dark:text-accent-400 underline hover:no-underline;
+}
+
+.prose-ayurpedia code {
+  @apply bg-stone-100 dark:bg-primary-900/50 text-primary-800 dark:text-accent-300 px-1.5 py-0.5 rounded text-xs font-mono;
+}
+
+.prose-ayurpedia pre {
+  @apply bg-stone-100 dark:bg-primary-900/50 p-4 rounded-xl overflow-x-auto mb-4;
+}
+
+.prose-ayurpedia pre code {
+  @apply bg-transparent p-0 text-xs;
+}
+
+.prose-ayurpedia blockquote {
+  @apply border-l-4 border-accent-400 pl-4 italic text-stone-600 dark:text-stone-400 mb-4;
+}
+
+/* Table styles for markdown tables */
+.prose-ayurpedia table {
+  @apply w-full mb-4 border-collapse text-xs;
+}
+
+.prose-ayurpedia thead {
+  @apply bg-primary-800 text-stone-50;
+}
+
+.prose-ayurpedia th {
+  @apply px-3 py-2 text-left font-semibold border-b-2 border-primary-700;
+}
+
+.prose-ayurpedia tbody tr {
+  @apply border-b border-stone-200 dark:border-primary-900/50 hover:bg-stone-50 dark:hover:bg-primary-900/30 transition-colors;
+}
+
+.prose-ayurpedia td {
+  @apply px-3 py-2 text-stone-700 dark:text-stone-300;
+}
+
+.prose-ayurpedia tbody tr:last-child {
+  @apply border-b-0;
+}
+
+.prose-ayurpedia hr {
+  @apply my-6 border-t border-stone-200 dark:border-primary-900/50;
+}
+
+/* ============================================================
    FOCUS STATES
    ============================================================ */
 
@@ -682,4 +841,190 @@ body {
 .focus-ring:focus-visible {
   outline: none;
   box-shadow: 0 0 0 3px rgba(31, 65, 51, 0.25);
+}
+
+/* Modern focus states with better accessibility */
+.focus-visible-ring:focus-visible {
+  outline: 2px solid rgba(207, 143, 34, 0.6);
+  outline-offset: 2px;
+}
+
+/* ============================================================
+   INTERACTIVE ELEMENTS
+   ============================================================ */
+
+/* Modern button hover effects */
+.btn-modern {
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn-modern::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s;
+}
+
+.btn-modern:hover::before {
+  left: 100%;
+}
+
+/* Card lift effect */
+.card-lift {
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+              box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.card-lift:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 40px -12px rgba(24, 51, 40, 0.25);
+}
+
+/* Icon bounce on hover */
+.icon-bounce:hover {
+  animation: iconBounce 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes iconBounce {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.2); }
+}
+
+/* Gradient border effect */
+.gradient-border {
+  position: relative;
+  background: #fffdf8;
+  border-radius: 1rem;
+}
+
+.gradient-border::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  background: linear-gradient(45deg, #cf8f22, #1f4133, #cf8f22);
+  border-radius: inherit;
+  z-index: -1;
+  background-size: 200% 200%;
+  animation: gradientBorder 3s ease infinite;
+}
+
+@keyframes gradientBorder {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+.dark .gradient-border {
+  background: #0d1310;
+}
+
+/* ============================================================
+   MODERN UTILITIES
+   ============================================================ */
+
+/* Glass morphism variants */
+.glass-strong {
+  background: rgba(250, 248, 243, 0.95);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(69, 63, 52, 0.15);
+}
+
+.dark .glass-strong {
+  background: rgba(13, 19, 16, 0.95);
+  border: 1px solid rgba(255, 252, 245, 0.1);
+}
+
+/* Modern badge styles */
+.badge-modern {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.025em;
+  text-transform: uppercase;
+}
+
+.badge-primary {
+  background: rgba(31, 65, 51, 0.1);
+  color: #1f4133;
+  border: 1px solid rgba(31, 65, 51, 0.2);
+}
+
+.dark .badge-primary {
+  background: rgba(127, 182, 147, 0.15);
+  color: #aed3ba;
+  border: 1px solid rgba(127, 182, 147, 0.3);
+}
+
+.badge-accent {
+  background: rgba(207, 143, 34, 0.1);
+  color: #cf8f22;
+  border: 1px solid rgba(207, 143, 34, 0.2);
+}
+
+.dark .badge-accent {
+  background: rgba(236, 194, 95, 0.15);
+  color: #ecc25f;
+  border: 1px solid rgba(236, 194, 95, 0.3);
+}
+
+/* Modern input styles */
+.input-modern {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: rgba(250, 248, 243, 0.8);
+  border: 1px solid rgba(69, 63, 52, 0.2);
+  border-radius: 0.75rem;
+  font-size: 0.875rem;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.input-modern:focus {
+  outline: none;
+  border-color: rgba(207, 143, 34, 0.5);
+  box-shadow: 0 0 0 3px rgba(207, 143, 34, 0.1);
+  background: rgba(250, 248, 243, 1);
+}
+
+.dark .input-modern {
+  background: rgba(13, 19, 16, 0.8);
+  border-color: rgba(255, 252, 245, 0.1);
+  color: #faf8f3;
+}
+
+.dark .input-modern:focus {
+  border-color: rgba(236, 194, 95, 0.5);
+  box-shadow: 0 0 0 3px rgba(236, 194, 95, 0.1);
+  background: rgba(13, 19, 16, 1);
+}
+
+/* Progress indicator */
+.progress-bar {
+  height: 0.5rem;
+  background: rgba(69, 63, 52, 0.1);
+  border-radius: 9999px;
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #cf8f22, #e0a93b);
+  border-radius: 9999px;
+  transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.dark .progress-bar {
+  background: rgba(255, 252, 245, 0.1);
+}
+
+.dark .progress-bar-fill {
+  background: linear-gradient(90deg, #ecc25f, #f2d489);
 }
