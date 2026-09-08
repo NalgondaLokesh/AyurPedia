@@ -1028,3 +1028,224 @@ body {
 .dark .progress-bar-fill {
   background: linear-gradient(90deg, #ecc25f, #f2d489);
 }
+
+/* ============================================================
+   EDITORIAL LANDING PRIMITIVES
+   (manuscript rules, ledger numerals, marquee rail, product mock)
+   ============================================================ */
+
+/* Small-caps rule label — the pin-point of editorial hierarchy */
+.rule-label {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: #b0741a;
+}
+
+.dark .rule-label { color: #e0a93b; }
+
+.rule-label::before {
+  content: '';
+  height: 1px;
+  width: 2.25rem;
+  background: currentColor;
+  opacity: 0.55;
+}
+
+/* Monospace "micro" label — document / statute conventions */
+.micro-mono {
+  font-family: 'SF Mono', ui-monospace, 'Cascadia Code', Menlo, monospace;
+  font-size: 0.6875rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* Tabular figures so ledgers / stats align like print */
+.tabular {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1;
+}
+
+/* Editorial hairline rule */
+.editorial-rule {
+  border: 0;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(69, 63, 52, 0.22), rgba(69, 63, 52, 0.08) 70%, transparent);
+}
+
+.dark .editorial-rule {
+  background: linear-gradient(90deg, rgba(255, 252, 245, 0.14), rgba(255, 252, 245, 0.05) 70%, transparent);
+}
+
+/* Ledger grid — faint blueprint lattice behind proof/stats sections */
+.ledger-grid {
+  background-image:
+    linear-gradient(rgba(31, 65, 51, 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(31, 65, 51, 0.045) 1px, transparent 1px);
+  background-size: 56px 56px;
+}
+
+.dark .ledger-grid {
+  background-image:
+    linear-gradient(rgba(127, 182, 147, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(127, 182, 147, 0.05) 1px, transparent 1px);
+}
+
+/* Scroll-reveal (driven by useReveal hook) */
+.reveal {
+  opacity: 0;
+  transform: translateY(18px);
+  transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
+}
+
+.reveal.is-visible {
+  opacity: 1;
+  transform: none;
+}
+
+.reveal-delay-1 { transition-delay: 0.08s; }
+.reveal-delay-2 { transition-delay: 0.16s; }
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}
+
+/* Corpus rail — one-directional ticker */
+@keyframes railScroll {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+.rail-track {
+  display: flex;
+  width: max-content;
+  animation: railScroll 42s linear infinite;
+}
+
+.rail-pause:hover .rail-track { animation-play-state: paused; }
+
+@media (prefers-reduced-motion: reduce) {
+  .rail-track { animation: none; }
+  .rail-pause .rail-track { flex-wrap: wrap; width: auto; }
+}
+
+/* Product answer mock — the artifact that sells the product */
+.answer-card {
+  background: #fffdf8;
+  border: 1px solid rgba(69, 63, 52, 0.14);
+  box-shadow:
+    0 1px 2px rgba(30, 28, 22, 0.04),
+    0 24px 48px -24px rgba(24, 51, 40, 0.25);
+}
+
+.dark .answer-card {
+  background: rgba(22, 30, 25, 0.92);
+  border: 1px solid rgba(255, 252, 245, 0.1);
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.4),
+    0 28px 56px -28px rgba(0, 0, 0, 0.6);
+}
+
+/* Leaf-gold corner tick, as on a sealed document */
+.answer-card::before {
+  content: '';
+  position: absolute;
+  top: -1px;
+  left: -1px;
+  width: 26px;
+  height: 26px;
+  border-top: 2px solid #cf8f22;
+  border-left: 2px solid #cf8f22;
+  border-top-left-radius: inherit;
+  pointer-events: none;
+}
+
+.confidence-meter {
+  position: relative;
+  height: 3px;
+  border-radius: 999px;
+  background: rgba(69, 63, 52, 0.12);
+  overflow: hidden;
+}
+
+.confidence-meter::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  width: var(--confidence, 92%);
+  background: linear-gradient(90deg, #356a4f, #cf8f22);
+}
+
+.dark .confidence-meter {
+  background: rgba(255, 252, 245, 0.12);
+}
+
+.dark .confidence-meter::after {
+  background: linear-gradient(90deg, #529571, #e0a93b);
+}
+
+/* Citation chip — mimics a legal pinpoint reference */
+.cite-chip {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  padding: 0.3rem 0.6rem;
+  border-radius: 0.45rem;
+  border: 1px solid rgba(31, 65, 51, 0.18);
+  background: rgba(31, 65, 51, 0.045);
+  font-size: 0.6875rem;
+  line-height: 1.2;
+  color: #1f4133;
+  white-space: nowrap;
+}
+
+.cite-chip span.pin {
+  font-family: 'SF Mono', ui-monospace, Menlo, monospace;
+  color: #b0741a;
+  font-weight: 600;
+}
+
+.dark .cite-chip {
+  border-color: rgba(174, 211, 186, 0.22);
+  background: rgba(127, 182, 147, 0.08);
+  color: #d5e9db;
+}
+
+.dark .cite-chip span.pin { color: #ecc25f; }
+
+/* Text link with a rule that grows — quieter than a second button */
+.link-rule {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.link-rule::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: -3px;
+  height: 1px;
+  width: 100%;
+  background: currentColor;
+  transform: scaleX(0.28);
+  transform-origin: left;
+  opacity: 0.5;
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
+}
+
+.link-rule:hover::after {
+  transform: scaleX(1);
+  opacity: 0.9;
+}

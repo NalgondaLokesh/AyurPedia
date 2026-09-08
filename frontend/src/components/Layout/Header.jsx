@@ -33,29 +33,29 @@ export const Header = () => {
     <header className="sticky top-0 z-40 bg-stone-50/80 dark:bg-[#0d1310]/85 backdrop-blur-xl border-b border-stone-200/70 dark:border-primary-900/40">
       {/* Saffron hairline */}
       <div className="h-0.5 w-full bg-gradient-to-r from-transparent via-accent-400/70 to-transparent" />
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16 gap-4">
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6">
+        <div className="flex items-center justify-between h-16 gap-2 sm:gap-4">
           
           {/* Logo & Brand */}
-          <Link to={isAuthenticated ? '/chat' : '/'} className="flex items-center gap-3 shrink-0 group">
-            <div className="relative w-11 h-11 rounded-2xl bg-primary-800 flex items-center justify-center text-accent-300 ring-1 ring-primary-700/50 shadow-card group-hover:ring-accent-400/60 transition-all duration-300 group-hover:-translate-y-0.5 group-hover:scale-105">
+          <Link to={isAuthenticated ? '/chat' : '/'} className="flex items-center gap-2 sm:gap-3 shrink-0 group">
+            <div className="relative w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-primary-800 flex items-center justify-center text-accent-300 ring-1 ring-primary-700/50 shadow-card group-hover:ring-accent-400/60 transition-all duration-300 group-hover:-translate-y-0.5 group-hover:scale-105">
               <span className="absolute inset-1 rounded-xl border border-accent-400/20" />
-              <AyurMark className="w-6 h-6 relative z-10 icon-bounce" />
+              <AyurMark className="w-5 h-5 sm:w-6 sm:h-6 relative z-10 icon-bounce" />
             </div>
             <div className="leading-none">
               <div className="flex items-center gap-1.5">
-                <span className="text-xl font-serif font-semibold tracking-tight text-primary-800 dark:text-stone-100 group-hover:text-primary-700 dark:group-hover:text-accent-300 transition-colors duration-300">
+                <span className="text-lg sm:text-xl font-serif font-semibold tracking-tight text-primary-800 dark:text-stone-100 group-hover:text-primary-700 dark:group-hover:text-accent-300 transition-colors duration-300">
                   Ayur<span className="text-accent-600 dark:text-accent-400">Pedia</span>
                 </span>
               </div>
-              <p className="text-[10px] text-stone-500 dark:text-stone-400 font-medium hidden sm:block tracking-[0.14em] uppercase mt-1">
+              <p className="text-[9px] sm:text-[10px] text-stone-500 dark:text-stone-400 font-medium hidden sm:block tracking-[0.14em] uppercase mt-1">
                 IPR &amp; Regulatory Intelligence
               </p>
             </div>
           </Link>
 
           {/* Desktop Navigation Links */}
-          <nav className="hidden md:flex items-center gap-1 bg-stone-100/70 dark:bg-primary-950/40 p-1 rounded-full border border-stone-200/80 dark:border-primary-900/40">
+          <nav className="hidden xl:flex items-center gap-1 bg-stone-100/70 dark:bg-primary-950/40 p-1 rounded-full border border-stone-200/80 dark:border-primary-900/40">
             {navLinks.map(({ to, label, icon: Icon, tab }) => {
               const active = tab
                 ? (isCurrentRoute(to) && activeTab === tab) || (to === '/classify' && activeTab === 'classify')
@@ -65,7 +65,7 @@ export const Header = () => {
                   key={to}
                   to={to}
                   onClick={() => tab && setActiveTab(tab)}
-                  className={`relative flex items-center gap-1.5 px-4 py-1.5 text-xs font-semibold rounded-full transition-all duration-300 card-lift ${
+                  className={`relative flex items-center gap-1.5 px-3 sm:px-4 py-1.5 text-xs font-semibold rounded-full transition-all duration-300 card-lift ${
                     active
                       ? 'bg-primary-800 text-stone-50 shadow-card'
                       : 'text-stone-600 dark:text-stone-300 hover:text-primary-800 dark:hover:text-stone-100 hover:bg-white/70 dark:hover:bg-primary-900/40'
@@ -79,7 +79,7 @@ export const Header = () => {
           </nav>
 
           {/* Right Controls: Jurisdiction + Language + Theme + Auth + Facilitator */}
-          <div className="hidden lg:flex items-center gap-2">
+          <div className="hidden lg:flex items-center gap-1.5 sm:gap-2">
             {!isLandingPage && !isAuthPage && <JurisdictionToggle />}
             <LanguageSelector />
             
@@ -89,47 +89,55 @@ export const Header = () => {
               className="p-2 text-stone-500 hover:text-primary-800 dark:text-stone-400 dark:hover:text-accent-300 rounded-xl hover:bg-stone-100 dark:hover:bg-primary-900/40 transition-all duration-200 cursor-pointer focus-premium card-lift"
               title={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
             >
-              {theme === 'light' ? <HiMoon className="w-5 h-5 icon-bounce" /> : <HiSun className="w-5 h-5 icon-bounce" />}
+              {theme === 'light' ? <HiMoon className="w-4 h-4 sm:w-5 sm:h-5 icon-bounce" /> : <HiSun className="w-4 h-4 sm:w-5 sm:h-5 icon-bounce" />}
             </button>
             
             {isAuthenticated ? (
               <>
-                <Link
-                  to="/settings"
-                  className="p-2 text-stone-500 hover:text-primary-800 dark:text-stone-400 dark:hover:text-accent-300 rounded-xl hover:bg-stone-100 dark:hover:bg-primary-900/40 transition-all duration-200 cursor-pointer focus-premium card-lift"
-                  title="Settings"
-                >
-                  <HiCog className="w-5 h-5 icon-bounce" />
-                </Link>
-                <div className="flex items-center gap-2 px-3 py-1.5 bg-stone-100 dark:bg-primary-950/50 rounded-xl border border-stone-200 dark:border-primary-900/50">
-                  <HiUser className="w-4 h-4 text-primary-600 dark:text-accent-400" />
-                  <span className="text-xs font-medium text-stone-700 dark:text-stone-300">
-                    {user?.full_name || user?.email?.split('@')[0]}
-                  </span>
+                <div className="relative group">
+                  <button className="flex items-center gap-2 px-3 py-1.5 bg-stone-100 dark:bg-primary-950/50 rounded-xl border border-stone-200 dark:border-primary-900/50 hover:bg-stone-200 dark:hover:bg-primary-900/60 transition-all duration-200 cursor-pointer">
+                    <HiUser className="w-4 h-4 text-primary-600 dark:text-accent-400" />
+                    <span className="text-xs font-medium text-stone-700 dark:text-stone-300">
+                      {user?.full_name || user?.email?.split('@')[0]}
+                    </span>
+                  </button>
+                  
+                  {/* Dropdown menu */}
+                  <div className="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-primary-900 rounded-xl border border-stone-200 dark:border-primary-800 shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                    <div className="p-1">
+                      <Link
+                        to="/settings"
+                        className="flex items-center gap-2 px-3 py-2 text-xs font-medium text-stone-700 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-primary-800 rounded-lg transition-colors"
+                      >
+                        <HiCog className="w-4 h-4" />
+                        <span>Settings</span>
+                      </Link>
+                      <button
+                        type="button"
+                        onClick={logout}
+                        className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                      >
+                        <HiArrowRightOnRectangle className="w-4 h-4" />
+                        <span>Logout</span>
+                      </button>
+                    </div>
+                  </div>
                 </div>
-                <button
-                  type="button"
-                  onClick={logout}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-stone-700 hover:bg-stone-100 dark:text-stone-300 dark:hover:bg-primary-900/40 rounded-xl transition-all duration-200 cursor-pointer focus-premium card-lift"
-                  title="Logout"
-                >
-                  <HiArrowRightOnRectangle className="w-4 h-4 icon-bounce" />
-                </button>
               </>
             ) : (
               <Link
                 to="/login"
-                className="inline-flex items-center gap-1.5 px-4 py-1.5 text-xs font-semibold text-primary-800 dark:text-stone-200 bg-white dark:bg-primary-900/40 hover:bg-stone-100 dark:hover:bg-primary-900/60 border border-stone-200 dark:border-primary-800/60 rounded-xl transition-all duration-200 cursor-pointer focus-premium card-lift"
+                className="inline-flex items-center gap-1.5 px-3 sm:px-4 py-1.5 text-xs font-semibold text-primary-800 dark:text-stone-200 bg-white dark:bg-primary-900/40 hover:bg-stone-100 dark:hover:bg-primary-900/60 border border-stone-200 dark:border-primary-800/60 rounded-xl transition-all duration-200 cursor-pointer focus-premium card-lift"
               >
                 <HiUser className="w-4 h-4 text-primary-600 dark:text-accent-400 icon-bounce" />
-                <span>Sign In</span>
+                <span className="hidden sm:inline">Sign In</span>
               </Link>
             )}
             
             <button
               type="button"
               onClick={() => openFacilitatorModal()}
-              className="inline-flex items-center gap-1.5 px-4 py-1.5 text-xs font-semibold text-white btn-premium btn-modern rounded-xl transition-all duration-200 cursor-pointer"
+              className="hidden lg:inline-flex items-center gap-1.5 px-3 sm:px-4 py-1.5 text-xs font-semibold text-white btn-premium btn-modern rounded-xl transition-all duration-200 cursor-pointer"
             >
               <HiUserGroup className="w-4 h-4 text-accent-300 icon-bounce" />
               <span>Facilitator</span>
@@ -142,7 +150,7 @@ export const Header = () => {
               type="button"
               onClick={toggleTheme}
               aria-label="Toggle theme"
-              className="p-2.5 text-stone-500 hover:text-primary-800 dark:text-stone-400 dark:hover:text-accent-300 rounded-xl hover:bg-stone-100 dark:hover:bg-primary-900/40 transition-colors cursor-pointer card-lift"
+              className="p-2 text-stone-500 hover:text-primary-800 dark:text-stone-400 dark:hover:text-accent-300 rounded-xl hover:bg-stone-100 dark:hover:bg-primary-900/40 transition-colors cursor-pointer card-lift"
             >
               {theme === 'light' ? <HiMoon className="w-5 h-5 icon-bounce" /> : <HiSun className="w-5 h-5 icon-bounce" />}
             </button>
@@ -151,7 +159,7 @@ export const Header = () => {
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               aria-label="Open menu"
               aria-expanded={mobileMenuOpen}
-              className="p-2.5 text-stone-600 dark:text-stone-300 hover:text-primary-800 hover:bg-stone-100 dark:hover:bg-primary-900/40 rounded-xl focus:outline-none card-lift"
+              className="p-2 text-stone-600 dark:text-stone-300 hover:text-primary-800 hover:bg-stone-100 dark:hover:bg-primary-900/40 rounded-xl focus:outline-none card-lift"
             >
               {mobileMenuOpen ? <HiXMark className="w-6 h-6 icon-bounce" /> : <HiBars3 className="w-6 h-6 icon-bounce" />}
             </button>

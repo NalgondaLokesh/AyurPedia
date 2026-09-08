@@ -8,15 +8,34 @@ import toast from 'react-hot-toast';
 
 const ChatContext = createContext(null);
 
-const INITIAL_WELCOME_MESSAGE = {
-  id: 'welcome-msg',
-  sender: 'assistant',
-  text: 'Hello! I am **AyurPedia**, your specialized AI assistant for Ayurvedic Intellectual Property Rights (IPR), Patent regulations, Traditional Knowledge Digital Library (TKDL) norms, and regulatory frameworks (e.g. FSSAI Ayurveda-Aahar, WIPO GRATK Treaty).\n\nYou can ask a regulatory or legal question directly, or use our **Classification Tool** to categorize your herbal formulation.',
-  citations: [],
-  confidence: 'High',
-  jurisdiction: 'India',
-  timestamp: new Date().toISOString(),
-  disclaimer: 'This is information, not legal advice. Consult a qualified legal professional.',
+const getWelcomeMessage = async (language) => {
+  const baseText = 'Hello! I am **AyurPedia**, your specialized AI assistant for Ayurvedic Intellectual Property Rights (IPR), Patent regulations, Traditional Knowledge Digital Library (TKDL) norms, and regulatory frameworks (e.g. FSSAI Ayurveda-Aahar, WIPO GRATK Treaty).\n\nYou can ask a regulatory or legal question directly, or use our **Classification Tool** to categorize your herbal formulation.';
+  
+  try {
+    const translatedText = await translateText(baseText, 'en', language);
+    return {
+      id: 'welcome-msg',
+      sender: 'assistant',
+      text: translatedText,
+      citations: [],
+      confidence: 'High',
+      jurisdiction: 'India',
+      timestamp: new Date().toISOString(),
+      disclaimer: 'This is information, not legal advice. Consult a qualified legal professional.',
+    };
+  } catch (error) {
+    console.error('Failed to translate welcome message:', error);
+    return {
+      id: 'welcome-msg',
+      sender: 'assistant',
+      text: baseText,
+      citations: [],
+      confidence: 'High',
+      jurisdiction: 'India',
+      timestamp: new Date().toISOString(),
+      disclaimer: 'This is information, not legal advice. Consult a qualified legal professional.',
+    };
+  }
 };
 
 export const ChatProvider = ({ children }) => {
@@ -40,18 +59,40 @@ export const ChatProvider = ({ children }) => {
     console.log('Cleared old localStorage keys:', keysToRemove);
   }, []); // Run once on mount
 
-  const [messages, setMessages] = useState(() => {
+  const [messages, setMessages] = useState([]);
+  const [welcomeMessage, setWelcomeMessage] = useState(null);
+
+  // Load welcome message based on language
+  useEffect(() => {
+    const loadWelcomeMessage = async () => {
+      const msg = await getWelcomeMessage(language);
+      setWelcomeMessage(msg);
+      // Only set messages if empty (first load)
+      if (messages.length === 0) {
+        setMessages([msg]);
+      }
+    };
+    loadWelcomeMessage();
+  }, [language]);
+
+  // Initialize messages from localStorage or welcome message
+  useEffect(() => {
     const userId = user?.id || localStorage.getItem('current_user_id') || 'guest';
     const saved = localStorage.getItem(`ayurpedia_chat_messages_${userId}_${jurisdiction}`);
     if (saved) {
       try {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        setMessages(parsed);
       } catch (e) {
         console.error('Failed to parse saved chat messages:', e);
+        if (welcomeMessage) {
+          setMessages([welcomeMessage]);
+        }
       }
+    } else if (welcomeMessage) {
+      setMessages([welcomeMessage]);
     }
-    return [INITIAL_WELCOME_MESSAGE];
-  });
+  }, [jurisdiction, user, welcomeMessage]);
 
   const [conversationId, setConversationId] = useState(() => {
     const userId = user?.id || localStorage.getItem('current_user_id') || 'guest';
@@ -77,11 +118,13 @@ export const ChatProvider = ({ children }) => {
   useEffect(() => {
     if (!user) {
       // User logged out, clear chat
-      setMessages([INITIAL_WELCOME_MESSAGE]);
+      if (welcomeMessage) {
+        setMessages([welcomeMessage]);
+      }
       setConversationId(uuidv4());
       setActiveClassification(null);
     }
-  }, [user]);
+  }, [user, welcomeMessage]);
 
   // Load jurisdiction-specific chat when jurisdiction changes
   useEffect(() => {
@@ -92,15 +135,18 @@ export const ChatProvider = ({ children }) => {
         setMessages(JSON.parse(saved));
       } catch (e) {
         console.error('Failed to parse saved chat messages:', e);
-        setMessages([INITIAL_WELCOME_MESSAGE]);
+        if (welcomeMessage) {
+          setMessages([welcomeMessage]);
+        }
       }
     } else {
-      setMessages([INITIAL_WELCOME_MESSAGE]);
+      if (welcomeMessage) {
+        setMessages([welcomeMessage]);
+      }
     }
     // Generate new conversation ID for this jurisdiction
     setConversationId(uuidv4());
-    setActiveClassification(null);
-  }, [jurisdiction, user]);
+  }, [jurisdiction, welcomeMessage]);
 
   /**
    * Send a chat message through translation and RAG pipeline
@@ -178,7 +224,9 @@ export const ChatProvider = ({ children }) => {
   };
 
   const clearMessages = () => {
-    setMessages([INITIAL_WELCOME_MESSAGE]);
+    if (welcomeMessage) {
+      setMessages([welcomeMessage]);
+    }
     setConversationId(uuidv4());
     setActiveClassification(null);
     toast.success('Chat cleared');
