@@ -1,16 +1,18 @@
 # AyurPedia 🌿
 
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.104.1-green?logo=fastapi)](https://fastapi.tiangolo.com)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.115.0-green?logo=fastapi)](https://fastapi.tiangolo.com)
 [![React](https://img.shields.io/badge/React-18-blue?logo=react)](https://reactjs.org)
 [![LangChain](https://img.shields.io/badge/LangChain-0.3.0-orange)](https://langchain.com)
+[![LangGraph](https://img.shields.io/badge/LangGraph-0.2.0-purple)](https://langgraph.dev)
 [![Qdrant](https://img.shields.io/badge/Qdrant-Cloud-red?logo=qdrant)](https://qdrant.tech)
+[![Neo4j](https://img.shields.io/badge/Neo4j-Aura-blue?logo=neo4j)](https://neo4j.com)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
 
 **Smart India Hackathon 2026** | Ayurvedic IPR & Regulatory AI Assistant
 
 > **Empowering Ayurvedic Innovation through Intelligent Legal Guidance**
 
-AyurPedia is a multilingual AI-powered legal and regulatory assistant for Ayurvedic Intellectual Property Rights (IPR), Patent regulations, and Traditional Knowledge compliance. It helps practitioners, researchers, AYUSH startups, and cultivators navigate the complex intersection of Ayurveda formulations and intellectual property law.
+AyurPedia is an AI-powered multilingual legal and regulatory intelligence platform for Ayurvedic Intellectual Property Rights (IPR), Patent regulations, and Traditional Knowledge compliance. It helps practitioners, researchers, AYUSH startups, and cultivators navigate the complex intersection of Ayurveda formulations and intellectual property law through advanced agentic RAG, patent novelty analysis, and intelligent formulation classification.
 
 ---
 
@@ -36,11 +38,14 @@ Ayurvedic practitioners, researchers, and AYUSH startups face significant challe
 
 AyurPedia addresses these challenges through an integrated AI-powered platform that:
 
-- **Provides Instant Legal Guidance**: AI-powered chat with verified citations from authoritative legal documents
+- **Provides Instant Legal Guidance**: AI-powered chat with verified citations from authoritative legal documents using agentic RAG
 - **Automates Classification**: Intelligent formulation classification under 7 regulatory classes using AI and RAG
+- **Patent Novelty Analysis**: Advanced Section 3(p) compliance checking with traditional knowledge prior art detection
 - **Supports Multilingual Queries**: Translation support for 10+ Indian languages
-- **Ensures Citation Accuracy**: All answers backed by verified legal document references
+- **Ensures Citation Accuracy**: All answers backed by verified legal document references with confidence scoring
 - **Offers Jurisdiction Flexibility**: Toggle between India and International legal frameworks
+- **Human Facilitator Escalation**: Seamless escalation to human experts for complex queries
+- **Privacy Controls**: User-controlled data management and privacy settings
 
 ---
 
@@ -66,6 +71,8 @@ graph TD
     M[NVIDIA NIM] -.->|Fallback on Rate Limit| I
     N[MongoDB] -.->|User Sessions| C
     O[Cohere Embeddings] -.->|Vector Generation| F
+    P[Neo4j] -.->|Knowledge Graph| C
+    Q[Sentry] -.->|Error Tracking| C
 ```
 
 ### Agentic RAG Workflow
@@ -76,7 +83,7 @@ graph LR
     B --> C[Extract Concepts & Intent]
     C --> D[VectorRetrieverAgent]
     D --> E[Search Qdrant]
-    E --> F[Top 5 Documents]
+    E --> F[Top 15 Documents]
     F --> G[ReasoningAgent]
     G --> H[Groq LLM Synthesis]
     H --> I[CitationAgent]
@@ -89,6 +96,9 @@ graph LR
     
     O[No Retrieval?] -.->|Yes| P[General Knowledge Mode]
     P --> H
+    
+    Q[Neo4j Graph?] -.->|Available| R[GraphRetrieverAgent]
+    R --> G
 ```
 
 ### Key Components
@@ -112,21 +122,24 @@ User Query → Query Understanding → Vector Search → LLM Synthesis → Citat
 
 | Component | Technology | Purpose |
 |-----------|-----------|---------|
-| **Backend Framework** | FastAPI 0.104.1 | REST API server |
+| **Backend Framework** | FastAPI 0.115.0 | REST API server with async support |
 | **LLM Orchestration** | LangChain 0.3.0 | RAG pipeline management |
 | **Workflow Engine** | LangGraph 0.2.0 | Agentic reasoning workflows |
-| **Graph Database** | Neo4j Aura Cloud | Knowledge graph for agentic RAG (backend only) |
-| **Vector Database** | Qdrant Cloud | Document storage & retrieval |
-| **Session Storage** | MongoDB | User session management |
-| **Primary LLM** | Groq (Llama models) | Response generation |
+| **Graph Database** | Neo4j Aura Cloud | Knowledge graph for legal concepts |
+| **Vector Database** | Qdrant Cloud | Document storage & retrieval with hierarchical chunking |
+| **Session Storage** | MongoDB Atlas | User session & conversation history |
+| **Primary LLM** | Groq (Llama 3.3-70B) | Response generation |
 | **Fallback LLM** | NVIDIA NIM (DeepSeek) | Backup generation on rate limits |
 | **Embeddings** | Cohere embed-english-v3.0 | 1024-dim vector embeddings |
-| **Frontend Framework** | React 18 | User interface |
+| **Frontend Framework** | React 18 | User interface with heritage theme |
 | **Build Tool** | Vite | Fast development & bundling |
-| **Styling** | Tailwind CSS | Utility-first CSS |
-| **Document Parsing** | LlamaParse | PDF extraction |
-| **Data Validation** | Pydantic | Type safety |
-| **Authentication** | JWT + MongoDB | User session management |
+| **Styling** | Tailwind CSS | Utility-first CSS with custom heritage design |
+| **Document Parsing** | LlamaParse | PDF extraction with hierarchical chunking |
+| **Data Validation** | Pydantic 2.7+ | Type safety & settings management |
+| **Authentication** | JWT + MongoDB | Secure user session management |
+| **Error Tracking** | Sentry | Production error monitoring |
+| **Rate Limiting** | SlowAPI | API rate limiting protection |
+| **Password Hashing** | bcrypt 4.0+ | Secure password storage |
 
 ---
 
@@ -138,23 +151,23 @@ User Query → Query Understanding → Vector Search → LLM Synthesis → Citat
 
 ### Challenge 2: Graph Retrieval Complexity
 **Problem**: Knowledge graph retrieval was finding 0 relevant nodes due to empty graph
-**Solution**: Simplified agentic RAG to use vector-only retrieval with hierarchical chunking
+**Solution**: Implemented hybrid approach - vector retrieval as primary with optional Neo4j graph enhancement
 
 ### Challenge 3: Response Format Issues
 **Problem**: Complex REASONING/ANSWER/CITATIONS format causing parsing errors
-**Solution**: Simplified prompt to direct answer format with inline citations
+**Solution**: Simplified prompt to direct answer format with inline citations and fallback citation extraction
 
 ### Challenge 4: Verbose Logging
 **Problem**: Excessive startup logs cluttering terminal
 **Solution**: Changed configuration and schema logs to DEBUG level, suppressed Neo4j notifications
 
-### Challenge 5: Unused Code Bloat
-**Problem**: Old KG folder and unused graph workflow files
-**Solution**: Removed `app/kg/` folder entirely, deleted unused `workflow.py`, `routing.py`, `validation.py`
+### Challenge 5: Patent Novelty Analysis
+**Problem**: Complex multi-component novelty analysis for Section 3(p) compliance
+**Solution**: Implemented PatentNoveltyAgent with ingredient, process, and combination novelty scoring
 
-### Challenge 6: Import Errors After Cleanup
-**Problem**: Missing imports after removing unused modules
-**Solution**: Updated `app/__init__.py` and `classification_service.py` to remove references to deleted modules
+### Challenge 6: Hierarchical Chunking
+**Problem**: Large legal documents losing context in simple chunking
+**Solution**: Implemented parent-child hierarchical chunking with offset tracking for precise retrieval
 
 ---
 
@@ -293,18 +306,54 @@ The frontend will be available at `http://localhost:5173`
 
 ---
 
+## Screenshots 📸
+
+### Landing Page
+![Landing Page](Screenshots/landing-page1.png)
+
+### Login Page
+![Login Page](Screenshots/login1.png)
+
+### Chat Interface
+![Chat Interface](Screenshots/chatInterfact1.png)
+
+### Query Response with Citations
+![Query Response](Screenshots/query1.png)
+
+### Citations Display
+![Citations](Screenshots/citations1.png)
+
+### Multilingual Support - Telugu Query
+![Telugu Query](Screenshots/query2_in_telugu_language.png)
+
+### Multilingual Support - Telugu Citations
+![Telugu Citations](Screenshots/citations2_in_telugu_language.png)
+
+### Formulation Classifier
+![Formulation Classifier](Screenshots/formulation_classifer.png)
+
+### Patent Novelty Checker
+![Patent Novelty Checker](Screenshots/patent_novelty_checker.png)
+
+---
+
 ## Key Features 🚀
 
-- 🏷️ **Formulation Classification**: AI-powered categorization of herbal products under 7 regulatory classes (Classical, Proprietary, Ayurveda-Aahar, Cosmetic, Phytopharmaceutical, etc.)
-- 🔍 **Patentability Analysis**: Clarify Section 3(p) restrictions against patenting traditional knowledge, novelty requirements, and synergistic bio-enhancers
-- 📜 **Regulatory Frameworks**: Guidance on Indian Patents Act 1970, Biological Diversity Act 2002 (NBA approval), FSSAI regulations, and international treaties
-- 💬 **AI-Powered Chat**: Interactive Q&A with citation enforcement and confidence scoring
--  **Agentic RAG**: Multi-step reasoning with LangGraph agents for complex legal queries
-- 🌐 **Multilingual Support**: Support for multiple languages (translation integration available)
-- 🔄 **Jurisdiction Toggle**: Switch between India and International legal frameworks
-- 🔐 **User Authentication**: Secure login/signup with session management
-- ✅ **Citation Enforcement**: All answers backed by verified legal document citations
+- 🏷️ **Formulation Classification**: AI-powered categorization of herbal products under 7 regulatory classes (Classical, Proprietary, Ayurveda-Aahar, Cosmetic, Phytopharmaceutical, Nutraceutical) using RAG-enhanced classification
+- 🔍 **Patent Novelty Checker**: Advanced Section 3(p) compliance analysis with component-wise novelty scoring (Ingredients, Process, Combination), prior art detection, and risk assessment
+- 📜 **Regulatory Frameworks**: Comprehensive guidance on Indian Patents Act 1970, Biological Diversity Act 2002 (NBA approval), FSSAI regulations, and international treaties (WIPO GRATK, Nagoya Protocol)
+- 💬 **AI-Powered Chat**: Interactive Q&A with citation enforcement, confidence scoring, and agentic RAG reasoning
+- 🤖 **Agentic RAG**: Multi-step reasoning with LangGraph agents (QueryUnderstanding, VectorRetriever, Reasoning, Citation) for complex legal queries
+- 🌐 **Multilingual Support**: Translation support for 10+ Indian languages (Hindi, Tamil, Telugu, Bengali, Marathi, Gujarati, Kannada, Malayalam, Punjabi, Assamese)
+- 🔄 **Jurisdiction Toggle**: Seamless switching between India and International legal frameworks with context-aware retrieval
+- 🔐 **User Authentication**: Secure JWT-based login/signup with MongoDB session management
+- ✅ **Citation Enforcement**: All answers backed by verified legal document citations with source tracking
 - 🛡️ **Safe Abstention**: Gracefully handles out-of-scope queries with appropriate disclaimers
+- 📊 **Conversation History**: Persistent chat history with authentication-protected access
+- 🎯 **Human Facilitator Escalation**: Escalation system for complex queries requiring human expert intervention
+- ⚙️ **Privacy Settings**: User-controlled data management and privacy preferences
+- 🔒 **Rate Limiting**: API protection with configurable rate limits
+- 📈 **Error Tracking**: Production error monitoring with Sentry integration
 
 ---
 
@@ -318,27 +367,43 @@ AyurPedia/
 │   │   │   ├── config.py       # Environment configuration
 │   │   │   ├── database.py     # Qdrant vector database
 │   │   │   ├── mongodb.py      # MongoDB session storage
-│   │   │   └── llm.py          # LLM client with fallback
+│   │   │   ├── neo4j.py        # Neo4j knowledge graph
+│   │   │   ├── llm.py          # LLM client with fallback
+│   │   │   ├── auth.py         # Authentication utilities
+│   │   │   ├── rate_limit.py   # Rate limiting
+│   │   │   └── sentry.py       # Error tracking
 │   │   ├── graph/               # Agentic RAG system
-│   │   │   └── agents.py       # LangGraph agentic reasoning
+│   │   │   └── agents.py       # LangGraph agentic reasoning (QueryUnderstanding, GraphRetriever, VectorRetriever, Reasoning, PatentNovelty)
 │   │   ├── rag/                 # RAG system
 │   │   │   ├── retriever.py    # Jurisdiction-aware retrieval with hierarchical chunking
 │   │   │   ├── hierarchical.py # Parent-child chunking strategy
 │   │   │   ├── hybrid_retriever.py # Hybrid search implementation
+│   │   │   ├── chunking.py     # Advanced chunking strategies
 │   │   │   ├── prompts.py      # LLM prompt templates
 │   │   │   └── chains.py       # RAG chain implementation
 │   │   ├── models/              # Pydantic models
 │   │   │   ├── chat.py         # Chat request/response
 │   │   │   ├── classification.py # Classification models
+│   │   │   ├── patent.py       # Patent novelty models
+│   │   │   ├── user.py         # User models
 │   │   │   └── document.py     # Document chunk model
+│   │   ├── ingestion/           # Document ingestion pipeline
+│   │   │   ├── loader.py       # PDF document loading
+│   │   │   ├── parser.py       # LlamaParse integration
+│   │   │   ├── chunker.py      # Advanced text chunking with hierarchical strategies
+│   │   │   └── embedder.py     # Cohere embedding generation
 │   │   ├── services/            # Business logic
 │   │   │   ├── chat_service.py # Chat processing
-│   │   │   └── classification_service.py # Classification logic
+│   │   │   └── auth_service.py # Authentication logic
 │   │   ├── api/                 # FastAPI endpoints
-│   │   │   ├── chat.py         # Chat endpoint
-│   │   │   ├── classify.py     # Classification endpoint (AI + RAG)
-│   │   │   ├── auth.py         # Authentication endpoints
-│   │   │   └── health.py        # Health check
+│   │   ├── chat.py         # Chat endpoint
+│   │   ├── classify.py     # Classification endpoint (AI + RAG)
+│   │   ├── patent.py       # Patent novelty checker endpoint
+│   │   ├── auth.py         # Authentication endpoints
+│   │   ├── conversations.py # Conversation history endpoints
+│   │   ├── conversations_auth.py # Auth-protected conversation endpoints
+│   │   ├── facilitator.py # Human facilitator escalation
+│   │   └── health.py        # Health check
 │   │   └── utils/               # Utilities
 │   │       └── validators.py   # Input validation
 │   ├── data/
@@ -350,22 +415,32 @@ AyurPedia/
 │   └── .env                     # Environment variables
 ├── frontend/                    # React Frontend
 │   ├── src/
-│   │   ├── components/          # React components
-│   │   │   ├── Chat/           # Chat interface
-│   │   │   ├── Classification/ # Classification UI
-│   │   │   ├── Auth/           # Login/Signup components
-│   │   │   └── Common/         # Shared components
-│   │   ├── services/            # API services
-│   │   │   ├── api.js          # Centralized API client
-│   │   │   ├── chatApi.js      # Chat API calls
-│   │   │   └── classifyApi.js  # Classification API
-│   │   ├── context/             # React Context
-│   │   │   ├── AppContext.js   # Application state
-│   │   │   └── AuthContext.js  # Authentication state
-│   │   ├── views/               # Page views
-│   │   │   ├── Landing.jsx     # Landing page
-│   │   │   ├── ChatView.jsx    # Chat interface
-│   │   │   └── ClassifyView.jsx # Classification UI
+│   │   │   ├── components/          # React components
+│   │   │   │   ├── Chat/           # Chat interface
+│   │   │   │   ├── Classification/ # Classification UI
+│   │   │   │   ├── Patent/         # Patent novelty checker UI
+│   │   │   │   ├── Graph/          # Knowledge graph visualization
+│   │   │   │   ├── Layout/         # Header, Footer components
+│   │   │   │   ├── Auth/           # Login/Signup components
+│   │   │   │   └── Common/         # Shared components (FacilitatorModal, ProtectedRoute)
+│   │   │   ├── services/            # API services
+│   │   │   │   ├── api.js          # Centralized API client
+│   │   │   │   ├── chatApi.js      # Chat API calls
+│   │   │   │   ├── classifyApi.js  # Classification API
+│   │   │   │   └── translationApi.js # Multilingual translation service
+│   │   │   ├── context/             # React Context
+│   │   │   │   ├── AppContext.js   # Application state
+│   │   │   │   ├── AuthContext.js  # Authentication state
+│   │   │   │   └── ChatContext.js  # Chat state management
+│   │   │   ├── views/               # Page views
+│   │   │   │   ├── LandingView.jsx     # Landing page
+│   │   │   │   ├── LoginView.jsx       # Login page
+│   │   │   │   ├── RegisterView.jsx    # Registration page
+│   │   │   │   ├── PrivacySettingsView.jsx # Privacy settings
+│   │   │   │   ├── DisclaimerView.jsx  # Legal disclaimer
+│   │   │   │   ├── PrivacyView.jsx     # Privacy policy
+│   │   │   │   ├── TermsView.jsx       # Terms of use
+│   │   │   │   └── GraphView.jsx       # Knowledge graph (disabled)
 │   │   └── styles/              # CSS styles
 │   ├── public/                  # Static assets
 │   ├── package.json             # Node dependencies
@@ -507,8 +582,10 @@ Result: Classical Ayurvedic Formulation
 **Request:**
 ```json
 {
-  "formulation": "Ashwagandha Churna",
-  "ingredients": ["Ashwagandha", "Honey"]
+  "formulation_name": "Ashwagandha Churna",
+  "ingredients": ["Ashwagandha", "Honey"],
+  "intended_use": "Stress relief",
+  "dosage_form": "Powder"
 }
 ```
 
@@ -520,9 +597,81 @@ Result: Classical Ayurvedic Formulation
   "reasoning": "Formulation based on classical Ayurvedic texts with traditional ingredients",
   "regulatory_requirements": ["Reference to classical texts required", "TKDL check recommended"],
   "key_factors": ["Traditional knowledge", "Classical ingredients"],
+  "id": "unique_id",
   "ai_generated": true
 }
 ```
+
+### Patent Novelty Checker Endpoint
+
+**POST** `/api/patent/novelty-check`
+
+**Request:**
+```json
+{
+  "formulation_name": "Novel Ashwagandha Nano-Emulsion",
+  "ingredients": ["Ashwagandha", "Black Pepper", "Ginger"],
+  "process": "Nano-emulsion technique for enhanced bioavailability",
+  "intended_use": "Stress relief with enhanced absorption",
+  "novelty_claim": "Novel delivery mechanism with 3x bioavailability",
+  "jurisdiction": "India"
+}
+```
+
+**Response:**
+```json
+{
+  "formulation_name": "Novel Ashwagandha Nano-Emulsion",
+  "novelty_score": 75.5,
+  "risk_level": "Medium",
+  "component_novelty": [
+    {
+      "component": "Ingredients",
+      "score": 60.0,
+      "risk_level": "Medium",
+      "analysis": "Mix of traditional and novel ingredients",
+      "traditional_references": ["Ashwagandha"]
+    },
+    {
+      "component": "Process",
+      "score": 85.0,
+      "risk_level": "Low",
+      "analysis": "Novel nano-emulsion process with modern technology",
+      "traditional_references": []
+    },
+    {
+      "component": "Combination",
+      "score": 75.0,
+      "risk_level": "Medium",
+      "analysis": "Synergistic combination with enhanced bioavailability",
+      "traditional_references": []
+    }
+  ],
+  "prior_art": [
+    {
+      "reference": "Ashwagandha classical formulations",
+      "source": "Traditional Knowledge Digital Library",
+      "relevance": "High"
+    }
+  ],
+  "section3p_analysis": {
+    "status": "Potentially Patentable",
+    "compliance_score": 0.75,
+    "recommendations": [
+      "Focus on process innovation in patent claims",
+      "Document experimental evidence for enhanced bioavailability",
+      "Conduct TKDL prior art search"
+    ],
+    "exclusions": ["Traditional Ashwagandha formulations"]
+  },
+  "confidence": 0.82,
+  "ai_generated": true
+}
+```
+
+**GET** `/api/patent/section3p-info`
+
+Returns educational information about Section 3(p) exclusions and patentability criteria.
 
 ### Health Check Endpoint
 
@@ -534,6 +683,7 @@ Result: Classical Ayurvedic Formulation
   "status": "healthy",
   "qdrant_connected": true,
   "mongodb_connected": true,
+  "neo4j_connected": true,
   "groq_available": true,
   "nvidia_available": false,
   "india_vectors": 1883,
@@ -607,14 +757,24 @@ CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
 - [x] Hierarchical parent-child chunking
 - [x] AI-powered classification with RAG
 - [x] Session management with MongoDB
+- [x] Neo4j knowledge graph integration
+- [x] Patent Novelty Checker with Section 3(p) analysis
+- [x] Human facilitator escalation system
+- [x] Privacy settings and data management
+- [x] Conversation history with authentication
+- [x] Sentry error tracking
+- [x] Rate limiting with SlowAPI
 
 ### Phase 4 (Future)
-- [ ] Patent novelty checker (Section 3(p) analysis)
 - [ ] Regulatory pathway recommender
 - [ ] Ingredient legality checker
 - [ ] Multi-jurisdictional compliance mapper
-- [ ] Prior art visualizer
+- [ ] Prior art visualizer with TKDL integration
 - [ ] Compliance document generator
+- [ ] Patent drafting assistance
+- [ ] Real-time collaboration features
+- [ ] Mobile app (Progressive Web App)
+- [ ] Offline mode with local vector database
 
 ## Disclaimer ⚠️
 
