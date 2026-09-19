@@ -821,4 +821,4 @@ This project is developed for **Smart India Hackathon 2026**.
 
 ---
 
-**Built with ❤️ for Smart India Hackathon 2026**
+**Built with ❤️ for Ayurvedic community**
