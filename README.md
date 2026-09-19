@@ -336,10 +336,10 @@ The frontend will be available at `http://localhost:5173`
 ![Patent Novelty Checker](Screenshots/patent_novelty_checker.png)
 
 ### Project Launch Video (Version 1)
-<video src="Screenshots/video1.mp4" width="600" controls></video>
+![Launch Video 1](Screenshots/video1.gif)
 
 ### Project Launch Video (Version 2 - Higher Quality)
-<video src="Screenshots/video2.mp4" width="600" controls></video>
+![Launch Video 2](Screenshots/video2.gif)
 
 ---
 
