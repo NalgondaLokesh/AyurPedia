@@ -335,6 +335,12 @@ The frontend will be available at `http://localhost:5173`
 ### Patent Novelty Checker
 ![Patent Novelty Checker](Screenshots/patent_novelty_checker.png)
 
+### Project Video - 1
+![Video 1](Screenshots/video1.mp4)
+
+### Project Video - 2
+![Video 2](Screenshots/video2.mp4)
+
 ---
 
 ## Key Features 🚀
