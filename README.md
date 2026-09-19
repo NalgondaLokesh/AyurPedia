@@ -338,8 +338,12 @@ The frontend will be available at `http://localhost:5173`
 ### Project Launch Video (Version 1)
 ![Launch Video 1](Screenshots/video1.gif)
 
+[Download MP4 Version](Screenshots/video1.mp4)
+
 ### Project Launch Video (Version 2 - Higher Quality)
 ![Launch Video 2](Screenshots/video2.gif)
+
+[Download MP4 Version](Screenshots/video2.mp4)
 
 ---
 
