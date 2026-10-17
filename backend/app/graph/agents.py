@@ -4,10 +4,14 @@ Implements agentic RAG with graph-based retrieval and reasoning.
 """
 
 import logging
-from typing import Dict, Any, List, Optional, TypedDict, Annotated
-from langchain_core.messages import HumanMessage, AIMessage
+from typing import Dict, Any, List, Optional, Annotated
+from typing_extensions import TypedDict
+from langchain_core.messages import HumanMessage, AIMessage, BaseMessage
 from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.runnables import RunnableConfig
 from langgraph.graph import StateGraph, END
+from langgraph.graph.message import add_messages
+from langgraph.checkpoint.memory import MemorySaver
 from operator import add
 from ..core.neo4j import get_neo4j
 from ..core.llm import get_llm_client
@@ -28,7 +32,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-class AgentState(TypedDict):
+class AgentState(TypedDict, total=False):
     """State for the agent workflow."""
     query: str
     jurisdiction: str
@@ -39,6 +43,10 @@ class AgentState(TypedDict):
     response: str
     citations: List[Dict[str, str]]
     confidence: str
+    # AG-UI requires the standard LangGraph messages channel with the
+    # add_messages reducer so it can merge incoming user messages and
+    # intercept LLM streaming events for TEXT_MESSAGE_CONTENT.
+    messages: Annotated[List[BaseMessage], add_messages]
 
 
 class QueryUnderstandingAgent:
@@ -59,6 +67,49 @@ class QueryUnderstandingAgent:
         Returns:
             Updated state with query analysis
         """
+        # Handle case where state might be in AG-UI message format
+        if "query" not in state or not state.get("query"):
+            messages = state.get("messages", [])
+            if messages and len(messages) > 0:
+                last_msg = messages[-1]
+                if isinstance(last_msg, dict):
+                    # AG-UI format — extract query from message content
+                    state["query"] = last_msg.get("content", "")
+                    # jurisdiction / language live inside message metadata
+                    meta = last_msg.get("metadata", {})
+                    state["jurisdiction"] = meta.get("jurisdiction", state.get("jurisdiction", "India"))
+                    state["language"] = meta.get("language", state.get("language", "en"))
+                elif isinstance(last_msg, BaseMessage):
+                    state["query"] = last_msg.content
+                    state.setdefault("jurisdiction", "India")
+                    state.setdefault("language", "en")
+                else:
+                    state["query"] = str(last_msg)
+                    state.setdefault("jurisdiction", "India")
+                    state.setdefault("language", "en")
+            else:
+                state["query"] = ""
+                state.setdefault("jurisdiction", "India")
+                state.setdefault("language", "en")
+        
+        # Ensure all required fields exist
+        if "jurisdiction" not in state:
+            state["jurisdiction"] = "India"
+        if "language" not in state:
+            state["language"] = "en"
+        if "query_analysis" not in state:
+            state["query_analysis"] = {}
+        if "vector_context" not in state:
+            state["vector_context"] = []
+        if "reasoning" not in state:
+            state["reasoning"] = ""
+        if "response" not in state:
+            state["response"] = ""
+        if "citations" not in state:
+            state["citations"] = []
+        if "confidence" not in state:
+            state["confidence"] = "Low"
+        
         query = state["query"]
         jurisdiction = state["jurisdiction"]
         language = state["language"]
@@ -338,35 +389,55 @@ class ReasoningAgent:
         self.llm = self.llm_client.get_llm_with_fallback()
         logger.info("ReasoningAgent initialized")
     
-    def __call__(self, state: AgentState) -> AgentState:
+    def __call__(self, state: AgentState, config: RunnableConfig = None) -> AgentState:
         """Synthesize legal reasoning from vector context.
-        
+
         Args:
             state: Current agent state
-            
+            config: LangGraph run config, forwarded to the LLM call so the
+                token stream is observable (AG-UI turns those tokens into
+                TEXT_MESSAGE_CONTENT events).
+
         Returns:
             Updated state with reasoning and response
         """
         query = state["query"]
         vector_context = state["vector_context"]
         language = state["language"]
-        
+
         logger.info("ReasoningAgent synthesizing response")
-        
+
         # Check if any retrieval happened
         has_retrieval = len(vector_context) > 0
         if not has_retrieval:
             logger.warning("No retrieval results - using general knowledge for response")
-        
+
         # Build reasoning prompt
         reasoning_prompt = self._build_reasoning_prompt(
             query, vector_context, language, has_retrieval
         )
-        
+
         try:
-            response = self.llm.invoke([HumanMessage(content=reasoning_prompt)])
-            response_text = response.content
-            
+            # Stream the answer instead of invoke(): AG-UI only forwards
+            # on_chat_model_stream events as TEXT_MESSAGE_CONTENT, and a plain
+            # invoke() emits none. Passing config is required or the graph's
+            # event stream never sees the model call (verified empirically).
+            chunks: List[str] = []
+            for chunk in self.llm.stream([HumanMessage(content=reasoning_prompt)], config=config):
+                content = chunk.content
+                if isinstance(content, list):
+                    content = "".join(
+                        part.get("text", "") for part in content if isinstance(part, dict)
+                    )
+                if content:
+                    chunks.append(content)
+
+            response_text = "".join(chunks)
+            if not response_text:
+                # Some providers (notably the NIM fallback) can yield an empty
+                # stream; fall back to a one-shot call so the answer is never lost.
+                response_text = self.llm.invoke([HumanMessage(content=reasoning_prompt)]).content
+
             # Extract reasoning, answer, and citations
             reasoning, final_response, citations = self._parse_response(response_text)
             
@@ -1123,6 +1194,12 @@ class CitationAgent:
         confidence = self._calculate_confidence(vector_context, validated)
         state["confidence"] = confidence
         
+        # Append the final response as an AIMessage so AG-UI can stream it
+        # to the frontend via TEXT_MESSAGE_CONTENT events.
+        final_response = state.get("response", "")
+        if final_response:
+            state["messages"] = [AIMessage(content=final_response)]
+        
         logger.info(f"CitationAgent validated {len(validated)} citations, confidence: {confidence}")
         return state
     
@@ -1191,6 +1268,9 @@ class AgenticRAGWorkflow:
         self.reasoning_agent = ReasoningAgent()
         self.citation_agent = CitationAgent()
         
+        # Create checkpointer for AG-UI compatibility
+        self.checkpointer = MemorySaver()
+        
         # Build workflow graph
         self.workflow = self._build_workflow()
         logger.info("AgenticRAGWorkflow initialized (with query understanding)")
@@ -1214,7 +1294,8 @@ class AgenticRAGWorkflow:
         workflow.add_edge("reasoning", "citation")
         workflow.add_edge("citation", END)
         
-        return workflow.compile()
+        # Compile with checkpointer for AG-UI compatibility
+        return workflow.compile(checkpointer=self.checkpointer)
     
     def invoke(self, query: str, jurisdiction: str = "India", 
                language: str = "en") -> Dict[str, Any]:
@@ -1281,7 +1362,10 @@ class AgenticRAGWorkflow:
         
         # Invoke workflow
         try:
-            final_state = self.workflow.invoke(initial_state)
+            final_state = self.workflow.invoke(
+                initial_state,
+                config={"configurable": {"thread_id": f"thread_{query[:50]}_{language}"}}
+            )
             
             return {
                 "response": final_state["response"],

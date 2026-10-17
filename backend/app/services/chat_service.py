@@ -5,6 +5,7 @@ Handles business logic for chat queries.
 
 import logging
 import re
+import uuid
 from typing import Dict, Any, Optional
 from ..rag.chains import RAGChain
 from ..models.chat import ChatRequest, ChatResponse, Citation
@@ -78,7 +79,7 @@ class ChatService:
         self.agentic_rag = agentic_rag
         logger.info("ChatService initialized with agentic RAG")
     
-    def process_query(self, request: ChatRequest) -> ChatResponse:
+    async def process_query(self, request: ChatRequest) -> ChatResponse:
         """Process a chat query.
         
         Args:
@@ -116,7 +117,7 @@ class ChatService:
             response = self.add_disclaimer(response)
             
             # Persist to MongoDB
-            self.persist_conversation(request, response)
+            await self.persist_conversation(request, response)
             
             return response
             
@@ -129,27 +130,34 @@ class ChatService:
                 jurisdiction=request.jurisdiction
             )
 
-    def persist_conversation(self, request: ChatRequest, response: ChatResponse) -> None:
+    async def persist_conversation(self, request: ChatRequest, response: ChatResponse) -> None:
         """Persist user query and AI response to MongoDB."""
         conv_id = request.conversation_id
         user_id = getattr(request, 'user_id', None)
+        logger.info(f"Persisting conversation: conv_id={conv_id}, user_id={user_id}, query={request.query[:50]}")
+        
         if not conv_id:
+            logger.error("No conversation_id provided, cannot persist conversation")
             return
+        
+        if not user_id:
+            logger.error("No user_id provided, cannot persist conversation")
+            return
+        
         try:
-            import asyncio
             from datetime import datetime
             from ..core.mongodb import get_mongodb
             mongo = get_mongodb()
-            
+
             user_msg = {
-                "id": f"usr_{int(datetime.utcnow().timestamp()*1000)}",
+                "id": str(uuid.uuid4()),
                 "sender": "user",
                 "text": request.query,
                 "timestamp": datetime.utcnow().isoformat(),
                 "user_id": user_id
             }
             assistant_msg = {
-                "id": f"ast_{int(datetime.utcnow().timestamp()*1000)}",
+                "id": str(uuid.uuid4()),
                 "sender": "assistant",
                 "text": response.response,
                 "citations": [c.model_dump() for c in response.citations],
@@ -157,19 +165,24 @@ class ChatService:
                 "jurisdiction": response.jurisdiction,
                 "disclaimer": response.disclaimer,
                 "timestamp": datetime.utcnow().isoformat(),
-                "user_id": user_id
+                "user_id": user_id,
+                "parent_message_id": user_msg["id"]  # Explicit association with user query
             }
+
+            user_saved = await mongo.save_message(conv_id, user_msg, request.jurisdiction, getattr(request, 'language', 'en'), user_id)
+            assistant_saved = await mongo.save_message(conv_id, assistant_msg, request.jurisdiction, getattr(request, 'language', 'en'), user_id)
             
-            try:
-                loop = asyncio.get_running_loop()
-                loop.create_task(mongo.save_message(conv_id, user_msg, request.jurisdiction, getattr(request, 'language', 'en'), user_id))
-                loop.create_task(mongo.save_message(conv_id, assistant_msg, request.jurisdiction, getattr(request, 'language', 'en'), user_id))
-            except RuntimeError:
-                # If running outside async event loop
-                asyncio.run(mongo.save_message(conv_id, user_msg, request.jurisdiction, getattr(request, 'language', 'en'), user_id))
-                asyncio.run(mongo.save_message(conv_id, assistant_msg, request.jurisdiction, getattr(request, 'language', 'en'), user_id))
+            if not user_saved or not assistant_saved:
+                logger.error(f"Failed to persist conversation {conv_id} - MongoDB write failed")
+                raise Exception("Failed to persist messages to database")
+            
+            logger.info(f"Successfully persisted conversation {conv_id} with message IDs: {user_msg['id']}, {assistant_msg['id']}")
+            
+            # Return message IDs to frontend for proper state synchronization
+            response.user_message_id = user_msg["id"]
+            response.assistant_message_id = assistant_msg["id"]
         except Exception as e:
-            logger.warning(f"Failed to persist conversation: {e}")
+            logger.error(f"Failed to persist conversation: {e}", exc_info=True)
     
     def format_response(self, rag_result: Dict[str, Any], request: ChatRequest) -> ChatResponse:
         """Format RAG result to ChatResponse.

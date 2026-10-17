@@ -75,6 +75,8 @@ graph TD
     Q[Sentry] -.->|Error Tracking| C
 ```
 
+![System Architecture](Screenshots/architecture.png)
+
 ### Agentic RAG Workflow
 
 ```mermaid

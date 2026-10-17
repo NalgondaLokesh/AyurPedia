@@ -72,17 +72,22 @@ class AuthService:
         user_doc = None
         
         if mongodb.is_connected and mongodb.db is not None:
+            logger.info(f"Auth: looking up user '{email}' in MongoDB Atlas")
             user_doc = await mongodb.db.users.find_one({"email": email})
         else:
+            logger.info(f"Auth: looking up user '{email}' in memory store "
+                        f"({len(mongodb._memory_store.get('users', []))} users)")
             for user in mongodb._memory_store.get("users", []):
                 if user["email"] == email:
                     user_doc = user
                     break
         
         if not user_doc:
+            logger.warning(f"Auth: user '{email}' not found — did you register first?")
             return None
         
         if not verify_password(password, user_doc["hashed_password"]):
+            logger.warning(f"Auth: password mismatch for '{email}'")
             return None
         
         # Handle both MongoDB _id and custom id field
@@ -91,6 +96,7 @@ class AuthService:
             logger.error(f"User document missing both _id and id: {user_doc}")
             return None
 
+        logger.info(f"Auth: user '{email}' authenticated successfully")
         return UserInDB(
             id=user_id,
             email=user_doc["email"],

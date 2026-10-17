@@ -7,6 +7,7 @@ import logging
 from typing import List, Dict, Any, Optional
 from ..core.database import QdrantDB
 from ..core.llm import get_llm_client
+from ..core.cache import get_embedding_cache, get_retrieval_cache
 from ..models.document import DocumentChunk
 
 
@@ -42,22 +43,38 @@ class Retriever:
             List of relevant DocumentChunk objects with similarity scores
         """
         logger.info(f"Searching for query: '{query}' in jurisdiction: {jurisdiction}")
-        
+
+        # Check cache for retrieval results
+        retrieval_cache = get_retrieval_cache()
+        cache_key = f"{query}_{jurisdiction}_{use_hierarchical}"
+        cached_results = retrieval_cache.get(cache_key)
+        if cached_results is not None:
+            logger.info("Using cached retrieval results")
+            return cached_results
+
         # Expand query with legal terms for better retrieval
         expanded_query = self._expand_query(query)
         logger.info(f"Expanded query: '{expanded_query}'")
         
-        # Get embedding for query
+        # Get embedding for query with caching
         embedder = self.llm_client.get_embedding_model()
         if not embedder:
             logger.error("Embedding model not available")
             return []
-        
-        try:
-            query_embedding = embedder.embed_query(expanded_query)
-        except Exception as e:
-            logger.error(f"Failed to generate query embedding: {e}")
-            return []
+
+        # Check cache for embedding
+        cache = get_embedding_cache()
+        cached_embedding = cache.get(expanded_query)
+        if cached_embedding is not None:
+            query_embedding = cached_embedding
+            logger.debug("Using cached embedding")
+        else:
+            try:
+                query_embedding = embedder.embed_query(expanded_query)
+                cache.set(query_embedding, expanded_query)
+            except Exception as e:
+                logger.error(f"Failed to generate query embedding: {e}")
+                return []
         
         # Search based on jurisdiction
         if jurisdiction.lower() == "india":
@@ -78,9 +95,14 @@ class Retriever:
         
         # Apply hierarchical retrieval if enabled
         if use_hierarchical:
-            return self.apply_hierarchical_retrieval(raw_results)
+            final_results = self.apply_hierarchical_retrieval(raw_results)
         else:
-            return raw_results[:self.top_k]
+            final_results = raw_results[:self.top_k]
+
+        # Cache the results
+        retrieval_cache.set(final_results, cache_key)
+
+        return final_results
     
     def search_india(self, query_embedding: List[float]) -> List[DocumentChunk]:
         """Search in India collection.
@@ -94,12 +116,12 @@ class Retriever:
         from ..core.config import get_config
         config = get_config()
         
-        # Try with lower threshold first, then filter results
+        # Try with higher threshold for better precision
         results = self.qdrant_db.search_similar(
             collection_name=config.india_collection,
             query_embedding=query_embedding,
-            limit=self.top_k * 3,  # Get more candidates for better recall
-            score_threshold=0.10  # Lower threshold to get more candidates
+            limit=self.top_k * 2,  # Get fewer candidates for better precision
+            score_threshold=0.15  # Higher threshold to improve precision
         )
         
         # Filter by score and apply relevance boosting
@@ -119,12 +141,12 @@ class Retriever:
         from ..core.config import get_config
         config = get_config()
         
-        # Try with lower threshold first, then filter results
+        # Try with higher threshold for better precision
         results = self.qdrant_db.search_similar(
             collection_name=config.international_collection,
             query_embedding=query_embedding,
-            limit=self.top_k * 3,  # Get more candidates for better recall
-            score_threshold=0.10  # Lower threshold to get more candidates
+            limit=self.top_k * 2,  # Get fewer candidates for better precision
+            score_threshold=0.15  # Higher threshold to improve precision
         )
         
         # Filter by score and apply relevance boosting
@@ -151,26 +173,26 @@ class Retriever:
             text = payload.get('text', '').lower()
             score = result.get('score', 0.0)
             
-            # Base filtering - minimum score threshold
-            if score < 0.15:
+            # Base filtering - minimum score threshold (raised for precision)
+            if score < 0.18:
                 continue
-            
-            # Boost factors for precision
+
+            # Reduced boost factors for better precision
             boost = 1.0
-            
-            # Boost if text contains legal section numbers (e.g., "section 3(p)")
+
+            # Small boost if text contains legal section numbers (e.g., "section 3(p)")
             if 'section' in text and any(char.isdigit() for char in text):
-                boost += 0.1
-            
-            # Boost if text contains legal acts/regulations
+                boost += 0.05
+
+            # Small boost if text contains legal acts/regulations
             legal_sources = ['patents act', 'biological diversity', 'fssai', 'wipo', 'trips', 'nagoya']
             if any(source in text for source in legal_sources):
-                boost += 0.15
-            
-            # Boost if text contains key legal terms
+                boost += 0.08
+
+            # Small boost if text contains key legal terms
             key_terms = ['patentability', 'novelty', 'prior art', 'inventive step', 'traditional knowledge']
             if any(term in text for term in key_terms):
-                boost += 0.1
+                boost += 0.05
             
             # Apply boost to score
             result['boosted_score'] = min(score * boost, 1.0)
@@ -333,14 +355,14 @@ class Retriever:
         
         expanded_query = query.lower()
         
-        # Add relevant expansions with more sophisticated matching
+        # Add relevant expansions with more sophisticated matching (reduced for precision)
         for term, expansion in term_expansions.items():
-            # Check for partial matches as well
-            if term in expanded_query or any(word in expanded_query for word in term.split()):
+            # Check for exact matches only (reduced from partial matches)
+            if term in expanded_query:
                 # Add expansion terms if not already present
                 expansion_terms = [t for t in expansion.split() if t not in expanded_query]
                 if expansion_terms:
-                    expanded_query += " " + " ".join(expansion_terms[:5])  # Add top 5 terms instead of 3
+                    expanded_query += " " + " ".join(expansion_terms[:3])  # Add top 3 terms only (reduced from 5)
         
         # Add domain-specific terms based on query analysis
         expanded_query = self._add_domain_terms(expanded_query)

@@ -58,9 +58,42 @@ async def chat(
     
     try:
         logger.info(f"Received chat request from user {current_user.id}: '{request.query}'")
+        
         # Add user_id to request for persistence
         request.user_id = current_user.id
-        response = chat_service.process_query(request)
+        
+        # Create conversation if conversation_id is not provided
+        if not request.conversation_id:
+            from datetime import datetime
+            import uuid
+            from ..core.mongodb import get_mongodb
+            mongo = get_mongodb()
+            
+            conversation_id = str(uuid.uuid4())
+            request.conversation_id = conversation_id
+            
+            # Create the conversation document
+            conversation_doc = {
+                "conversation_id": conversation_id,
+                "user_id": current_user.id,
+                "title": request.query[:50] + "..." if len(request.query) > 50 else request.query,
+                "jurisdiction": request.jurisdiction,
+                "language": request.language or "en",
+                "created_at": datetime.utcnow(),
+                "updated_at": datetime.utcnow(),
+                "messages": []
+            }
+            
+            if mongo.is_connected and mongo.db is not None:
+                await mongo.db.conversations.insert_one(conversation_doc)
+            else:
+                if "conversations" not in mongo._memory_store:
+                    mongo._memory_store["conversations"] = {}
+                mongo._memory_store["conversations"][conversation_id] = conversation_doc
+            
+            logger.info(f"Created new conversation {conversation_id} for user {current_user.id}")
+        
+        response = await chat_service.process_query(request)
         logger.info(f"Chat response generated with confidence: {response.confidence}")
         return response
         

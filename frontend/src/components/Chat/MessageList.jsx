@@ -6,10 +6,10 @@ import CitationCard from './CitationCard';
 import ConfidenceBadge from '../Common/ConfidenceBadge';
 import Disclaimer from '../Common/Disclaimer';
 import { AyurMark } from '../Common/Botanical';
-import { HiUser, HiBookmark, HiHandThumbUp, HiHandThumbDown } from 'react-icons/hi2';
+import { HiUser, HiBookmark, HiHandThumbUp, HiHandThumbDown, HiTrash } from 'react-icons/hi2';
 
 export const MessageList = () => {
-  const { messages, isLoading } = useChatContext();
+  const { messages, isLoading, deleteMessage } = useChatContext();
   const messagesEndRef = useRef(null);
   const [feedback, setFeedback] = useState({});
 
@@ -122,33 +122,47 @@ export const MessageList = () => {
                   })}
                 </div>
                 
-                {/* Feedback Buttons (Assistant only) */}
-                {!isUser && (
-                  <div className="flex items-center gap-1">
+                {/* Action Buttons */}
+                <div className="flex items-center gap-1">
+                  {/* Delete Button (User messages only) */}
+                  {isUser && (
                     <button
-                      onClick={() => handleFeedback(message.id, 'up')}
-                      className={`p-1.5 rounded-lg transition-all ${
-                        feedback[message.id] === 'up'
-                          ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300'
-                          : 'hover:bg-stone-100 dark:hover:bg-primary-900/40 text-stone-400 hover:text-stone-600 dark:hover:text-stone-300'
-                      }`}
-                      title="Helpful"
+                      onClick={() => deleteMessage(message.id)}
+                      className="p-1.5 rounded-lg transition-all hover:bg-clay-100 dark:hover:bg-clay-900/30 text-stone-400 hover:text-clay-600 dark:hover:text-clay-300"
+                      title="Delete message"
                     >
-                      <HiHandThumbUp className="w-4 h-4" />
+                      <HiTrash className="w-4 h-4" />
                     </button>
-                    <button
-                      onClick={() => handleFeedback(message.id, 'down')}
-                      className={`p-1.5 rounded-lg transition-all ${
-                        feedback[message.id] === 'down'
-                          ? 'bg-clay-100 text-clay-600 dark:bg-clay-900/30 dark:text-clay-300'
-                          : 'hover:bg-stone-100 dark:hover:bg-primary-900/40 text-stone-400 hover:text-stone-600 dark:hover:text-stone-300'
-                      }`}
-                      title="Not helpful"
-                    >
-                      <HiHandThumbDown className="w-4 h-4" />
-                    </button>
-                  </div>
-                )}
+                  )}
+                  
+                  {/* Feedback Buttons (Assistant only) */}
+                  {!isUser && (
+                    <>
+                      <button
+                        onClick={() => handleFeedback(message.id, 'up')}
+                        className={`p-1.5 rounded-lg transition-all ${
+                          feedback[message.id] === 'up'
+                            ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300'
+                            : 'hover:bg-stone-100 dark:hover:bg-primary-900/40 text-stone-400 hover:text-stone-600 dark:hover:text-stone-300'
+                        }`}
+                        title="Helpful"
+                      >
+                        <HiHandThumbUp className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => handleFeedback(message.id, 'down')}
+                        className={`p-1.5 rounded-lg transition-all ${
+                          feedback[message.id] === 'down'
+                            ? 'bg-clay-100 text-clay-600 dark:bg-clay-900/30 dark:text-clay-300'
+                            : 'hover:bg-stone-100 dark:hover:bg-primary-900/40 text-stone-400 hover:text-stone-600 dark:hover:text-stone-300'
+                        }`}
+                        title="Not helpful"
+                      >
+                        <HiHandThumbDown className="w-4 h-4" />
+                      </button>
+                    </>
+                  )}
+                </div>
               </div>
             </div>
 

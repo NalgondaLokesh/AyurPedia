@@ -94,29 +94,41 @@ class MongoDBManager:
     # Chat & Conversation Persistence
     # -------------------------------------------------------------
     async def save_message(self, conversation_id: str, message: Dict[str, Any], jurisdiction: str = "India", language: str = "en", user_id: Optional[str] = None) -> bool:
-        """Save or append a message to a conversation."""
+        """Save or append a message to a conversation with user ownership verification."""
         now = datetime.utcnow().isoformat()
+        
         if self.is_connected and self.db is not None:
             try:
-                await self.db.conversations.update_one(
-                    {"conversation_id": conversation_id},
+                # Verify user ownership if user_id provided
+                query = {"conversation_id": conversation_id}
+                if user_id:
+                    query["user_id"] = user_id
+                
+                result = await self.db.conversations.update_one(
+                    query,
                     {
                         "$setOnInsert": {
                             "created_at": now,
                             "jurisdiction": jurisdiction,
                             "language": language,
-                            "user_id": user_id
+                            "user_id": user_id,
+                            "title": self._generate_title(message) if message.get("sender") == "user" else "New Conversation"
                         },
                         "$set": {"updated_at": now},
                         "$push": {"messages": message}
                     },
                     upsert=True
                 )
+                
+                if result.upserted_id:
+                    logger.info(f"Created new conversation {conversation_id} for user {user_id}")
                 return True
             except Exception as e:
                 logger.error(f"Failed to save message to MongoDB: {e}")
+                # Return False to indicate failure instead of silent fallback
+                return False
         
-        # In-memory fallback
+        # In-memory fallback (only for development - should fail clearly in production)
         if conversation_id not in self._memory_store["conversations"]:
             self._memory_store["conversations"][conversation_id] = {
                 "conversation_id": conversation_id,
@@ -125,22 +137,47 @@ class MongoDBManager:
                 "jurisdiction": jurisdiction,
                 "language": language,
                 "user_id": user_id,
+                "title": "New Conversation",
                 "messages": []
             }
+        
+        # Verify user ownership in memory store
+        conv = self._memory_store["conversations"][conversation_id]
+        if user_id and conv.get("user_id") != user_id:
+            logger.warning(f"User {user_id} attempted to write to conversation owned by {conv.get('user_id')}")
+            return False
+        
         self._memory_store["conversations"][conversation_id]["updated_at"] = now
         self._memory_store["conversations"][conversation_id]["messages"].append(message)
         return True
+    
+    def _generate_title(self, message: Dict[str, Any]) -> str:
+        """Generate a conversation title from the first user message."""
+        text = message.get("text", "")
+        # Truncate to 50 characters and add ellipsis if needed
+        title = text[:50].strip()
+        if len(text) > 50:
+            title += "..."
+        return title or "New Conversation"
 
-    async def get_conversation(self, conversation_id: str) -> Optional[Dict[str, Any]]:
-        """Retrieve full conversation document by ID."""
+    async def get_conversation(self, conversation_id: str, user_id: Optional[str] = None) -> Optional[Dict[str, Any]]:
+        """Retrieve full conversation document by ID with user ownership verification."""
+        query = {"conversation_id": conversation_id}
+        if user_id:
+            query["user_id"] = user_id
+        
         if self.is_connected and self.db is not None:
             try:
-                doc = await self.db.conversations.find_one({"conversation_id": conversation_id}, {"_id": 0})
+                doc = await self.db.conversations.find_one(query, {"_id": 0})
                 return doc
             except Exception as e:
                 logger.error(f"Failed to fetch conversation from MongoDB: {e}")
         
-        return self._memory_store["conversations"].get(conversation_id)
+        # In-memory fallback with user verification
+        conv = self._memory_store["conversations"].get(conversation_id)
+        if conv and user_id and conv.get("user_id") != user_id:
+            conv = None
+        return conv
 
     async def list_conversations(self, limit: int = 20, user_id: Optional[str] = None) -> List[Dict[str, Any]]:
         """List recent conversation summaries for a specific user."""
@@ -158,7 +195,15 @@ class MongoDBManager:
         convs = list(self._memory_store["conversations"].values())
         if user_id:
             convs = [c for c in convs if c.get("user_id") == user_id]
-        convs.sort(key=lambda x: x.get("updated_at", ""), reverse=True)
+        
+        # Normalize updated_at to string for consistent sorting
+        def normalize_updated_at(conv):
+            updated_at = conv.get("updated_at", "")
+            if isinstance(updated_at, datetime):
+                return updated_at.isoformat()
+            return str(updated_at)
+        
+        convs.sort(key=normalize_updated_at, reverse=True)
         return convs[:limit]
 
     # -------------------------------------------------------------
@@ -193,7 +238,15 @@ class MongoDBManager:
         classifications = self._memory_store["classifications"]
         if user_id:
             classifications = [c for c in classifications if c.get("user_id") == user_id]
-        return sorted(classifications, key=lambda x: x.get("created_at", ""), reverse=True)[:limit]
+        
+        # Normalize created_at to string for consistent sorting
+        def normalize_created_at(item):
+            created_at = item.get("created_at", "")
+            if isinstance(created_at, datetime):
+                return created_at.isoformat()
+            return str(created_at)
+        
+        return sorted(classifications, key=normalize_created_at, reverse=True)[:limit]
 
     # -------------------------------------------------------------
     # Facilitator Escalation Persistence

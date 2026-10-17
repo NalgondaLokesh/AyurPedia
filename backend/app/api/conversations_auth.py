@@ -49,9 +49,10 @@ async def create_conversation(
     current_user: UserResponse = Depends(get_current_user)
 ):
     """Create a new conversation for the authenticated user."""
+    import uuid
     mongodb = get_mongodb()
     
-    conversation_id = f"conv_{current_user.id}_{datetime.utcnow().timestamp()}"
+    conversation_id = str(uuid.uuid4())
     conversation_doc = {
         "conversation_id": conversation_id,
         "user_id": current_user.id,

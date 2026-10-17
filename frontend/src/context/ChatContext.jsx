@@ -1,9 +1,10 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
-import { sendMessage as apiSendMessage } from '../services/chatApi';
+import { sendMessage as apiSendMessage, getConversation, listConversations, createConversation } from '../services/chatApi';
 import { translateText, detectLanguage } from '../services/translationApi';
 import { useApp } from './AppContext';
 import { useAuth } from './AuthContext';
+import api from '../services/api';
 import toast from 'react-hot-toast';
 
 const ChatContext = createContext(null);
@@ -41,112 +42,95 @@ const getWelcomeMessage = async (language) => {
 export const ChatProvider = ({ children }) => {
   const { language, jurisdiction } = useApp();
   const { user } = useAuth();
-  
-  // One-time cleanup of old localStorage keys on mount
-  useEffect(() => {
-    // Clear all old keys without jurisdiction suffix
-    const keysToRemove = [];
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key && (key.startsWith('ayurpedia_chat_messages_') || key.startsWith('ayurpedia_conv_id_'))) {
-        // Check if key doesn't have jurisdiction suffix (no _India, _International, _Both)
-        if (!key.match(/_(India|International|Both)$/)) {
-          keysToRemove.push(key);
-        }
-      }
-    }
-    keysToRemove.forEach(key => localStorage.removeItem(key));
-    console.log('Cleared old localStorage keys:', keysToRemove);
-  }, []); // Run once on mount
 
   const [messages, setMessages] = useState([]);
   const [welcomeMessage, setWelcomeMessage] = useState(null);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [conversationId, setConversationId] = useState(null);
+  const [activeClassification, setActiveClassification] = useState(null);
 
   // Load welcome message based on language
   useEffect(() => {
     const loadWelcomeMessage = async () => {
       const msg = await getWelcomeMessage(language);
       setWelcomeMessage(msg);
-      // Only set messages if empty (first load)
-      if (messages.length === 0) {
-        setMessages([msg]);
-      }
     };
     loadWelcomeMessage();
   }, [language]);
 
-  // Initialize messages from localStorage or welcome message
+  // Load conversation history from MongoDB when user or jurisdiction changes
   useEffect(() => {
-    const userId = user?.id || localStorage.getItem('current_user_id') || 'guest';
-    const saved = localStorage.getItem(`ayurpedia_chat_messages_${userId}_${jurisdiction}`);
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        setMessages(parsed);
-      } catch (e) {
-        console.error('Failed to parse saved chat messages:', e);
+    const loadConversationHistory = async () => {
+      if (!user) {
+        // Not logged in, use welcome message
         if (welcomeMessage) {
           setMessages([welcomeMessage]);
         }
+        setConversationId(null);
+        return;
       }
-    } else if (welcomeMessage) {
-      setMessages([welcomeMessage]);
-    }
-  }, [jurisdiction, user, welcomeMessage]);
 
-  const [conversationId, setConversationId] = useState(() => {
-    const userId = user?.id || localStorage.getItem('current_user_id') || 'guest';
-    return localStorage.getItem(`ayurpedia_conv_id_${userId}_${jurisdiction}`) || uuidv4();
-  });
+      setIsLoadingHistory(true);
+      try {
+        const conversations = await listConversations(20);
+        if (conversations && conversations.length > 0) {
+          // Load the most recent conversation for the current jurisdiction
+          const matchingConv = conversations.find(
+            (c) => c.jurisdiction === jurisdiction
+          );
+          if (matchingConv) {
+            setConversationId(matchingConv.conversation_id);
+            const convData = await getConversation(matchingConv.conversation_id);
+            if (convData && convData.messages) {
+              // Ensure each message has an id field (use _id from MongoDB if id is missing)
+              const messagesWithIds = convData.messages.map(msg => ({
+                ...msg,
+                id: msg.id || msg._id || uuidv4()
+              }));
+              setMessages(messagesWithIds);
+            } else {
+              // Conversation exists but has no messages
+              setMessages([welcomeMessage]);
+            }
+          } else {
+            // No matching conversation, create new one
+            const newConv = await createConversation(jurisdiction, language);
+            setConversationId(newConv.conversation_id);
+            setMessages([welcomeMessage]);
+          }
+        } else {
+          // No conversations, create new one
+          const newConv = await createConversation(jurisdiction, language);
+          setConversationId(newConv.conversation_id);
+          setMessages([welcomeMessage]);
+        }
+      } catch (error) {
+        console.error('Failed to load conversation history:', error);
+        // Fallback to welcome message
+        if (welcomeMessage) {
+          setMessages([welcomeMessage]);
+        }
+      } finally {
+        setIsLoadingHistory(false);
+      }
+    };
 
-  const [isLoading, setIsLoading] = useState(false);
-  const [activeClassification, setActiveClassification] = useState(null);
-  const [error, setError] = useState(null);
+    loadConversationHistory();
+  }, [user, jurisdiction, language, welcomeMessage]);
 
-  // Sync messages to localStorage with user-specific and jurisdiction-specific key
-  useEffect(() => {
-    const userId = user?.id || localStorage.getItem('current_user_id') || 'guest';
-    localStorage.setItem(`ayurpedia_chat_messages_${userId}_${jurisdiction}`, JSON.stringify(messages));
-  }, [messages, user, jurisdiction]);
-
-  useEffect(() => {
-    const userId = user?.id || localStorage.getItem('current_user_id') || 'guest';
-    localStorage.setItem(`ayurpedia_conv_id_${userId}_${jurisdiction}`, conversationId);
-  }, [conversationId, user, jurisdiction]);
-
-  // Clear chat when user changes or logs out
+  // Handle user logout
   useEffect(() => {
     if (!user) {
       // User logged out, clear chat
       if (welcomeMessage) {
         setMessages([welcomeMessage]);
       }
-      setConversationId(uuidv4());
+      setConversationId(null);
       setActiveClassification(null);
     }
   }, [user, welcomeMessage]);
-
-  // Load jurisdiction-specific chat when jurisdiction changes
-  useEffect(() => {
-    const userId = user?.id || localStorage.getItem('current_user_id') || 'guest';
-    const saved = localStorage.getItem(`ayurpedia_chat_messages_${userId}_${jurisdiction}`);
-    if (saved) {
-      try {
-        setMessages(JSON.parse(saved));
-      } catch (e) {
-        console.error('Failed to parse saved chat messages:', e);
-        if (welcomeMessage) {
-          setMessages([welcomeMessage]);
-        }
-      }
-    } else {
-      if (welcomeMessage) {
-        setMessages([welcomeMessage]);
-      }
-    }
-    // Generate new conversation ID for this jurisdiction
-    setConversationId(uuidv4());
-  }, [jurisdiction, welcomeMessage]);
 
   /**
    * Send a chat message through translation and RAG pipeline
@@ -155,10 +139,24 @@ export const ChatProvider = ({ children }) => {
     if (!userText || !userText.trim() || isLoading) return;
 
     const trimmedText = userText.trim();
-    const userMsgId = uuidv4();
-    const assistantMsgId = uuidv4();
 
-    // 1. Append User Message
+    // Ensure we have a conversation ID
+    let currentConvId = conversationId;
+    if (!currentConvId && user) {
+      try {
+        const newConv = await createConversation(jurisdiction, language);
+        currentConvId = newConv.conversation_id;
+        setConversationId(currentConvId);
+      } catch (error) {
+        console.error('Failed to create conversation:', error);
+        setError('Failed to create conversation. Please try again.');
+        toast.error('Failed to create conversation');
+        return;
+      }
+    }
+
+    // 1. Append User Message with temporary ID
+    const userMsgId = uuidv4();
     const userMessage = {
       id: userMsgId,
       sender: 'user',
@@ -177,7 +175,7 @@ export const ChatProvider = ({ children }) => {
         query: trimmedText,
         jurisdiction: jurisdiction,
         language: activeLang,
-        conversationId: conversationId,
+        conversationId: currentConvId,
         classification: activeClassification ? {
           category: activeClassification.category,
           relevant_laws: activeClassification.relevant_laws || []
@@ -186,9 +184,9 @@ export const ChatProvider = ({ children }) => {
 
       const responseText = responseData.response || 'No response generated.';
 
-      // 5. Append Assistant Message
+      // 3. Append Assistant Message with backend-provided ID if available
       const assistantMessage = {
-        id: assistantMsgId,
+        id: responseData.assistant_message_id || uuidv4(),
         sender: 'assistant',
         text: responseText,
         citations: responseData.citations || [],
@@ -196,6 +194,7 @@ export const ChatProvider = ({ children }) => {
         jurisdiction: responseData.jurisdiction || jurisdiction,
         disclaimer: responseData.disclaimer || 'This is information, not legal advice. Consult a qualified legal professional.',
         classification: responseData.classification,
+        parent_message_id: responseData.user_message_id || userMsgId,
         timestamp: new Date().toISOString(),
       };
 
@@ -207,7 +206,7 @@ export const ChatProvider = ({ children }) => {
       toast.error(userErr);
 
       const errorMessage = {
-        id: assistantMsgId,
+        id: uuidv4(),
         sender: 'assistant',
         text: `⚠️ **Error**: ${userErr}\n\nPlease try again or contact a legal facilitator if the problem persists.`,
         citations: [],
@@ -223,13 +222,18 @@ export const ChatProvider = ({ children }) => {
     }
   };
 
-  const clearMessages = () => {
-    if (welcomeMessage) {
+  const clearMessages = async () => {
+    // Create a new conversation on the backend instead of just generating a local UUID
+    try {
+      const newConv = await createConversation(jurisdiction, language);
+      setConversationId(newConv.conversation_id);
       setMessages([welcomeMessage]);
+      setActiveClassification(null);
+      toast.success('Chat cleared');
+    } catch (error) {
+      console.error('Failed to clear chat:', error);
+      toast.error('Failed to clear chat');
     }
-    setConversationId(uuidv4());
-    setActiveClassification(null);
-    toast.success('Chat cleared');
   };
 
   const attachClassification = (classificationResult) => {
@@ -240,6 +244,87 @@ export const ChatProvider = ({ children }) => {
   const removeClassification = () => {
     setActiveClassification(null);
     toast('Classification context removed');
+  };
+
+  const loadConversation = async (convId) => {
+    if (!convId) return;
+    
+    setIsLoadingHistory(true);
+    try {
+      const convData = await getConversation(convId);
+      if (convData && convData.messages) {
+        // Use the actual IDs from the database - do not generate new ones
+        const messagesWithIds = convData.messages.map(msg => ({
+          ...msg,
+          id: msg.id || msg._id  // Use existing ID, never generate a new one
+        }));
+        setMessages(messagesWithIds);
+        setConversationId(convId);
+      }
+    } catch (error) {
+      console.error('Failed to load conversation:', error);
+      toast.error('Failed to load conversation');
+    } finally {
+      setIsLoadingHistory(false);
+    }
+  };
+
+  const deleteMessage = async (messageId) => {
+    if (!conversationId || !user) {
+      // Not logged in or no conversation, just remove from local state
+      setMessages((prev) => {
+        const messageToDelete = prev.find((msg) => msg.id === messageId || msg._id === messageId);
+        if (!messageToDelete) return prev;
+        
+        const idsToDelete = [messageId];
+        
+        // If deleting user message, find assistant message with parent_message_id
+        if (messageToDelete.sender === 'user') {
+          const assistantMsg = prev.find(msg => msg.parent_message_id === messageId);
+          if (assistantMsg) {
+            idsToDelete.push(assistantMsg.id || assistantMsg._id);
+          }
+        }
+        // If deleting assistant message, find the user message it references
+        else if (messageToDelete.sender === 'assistant' && messageToDelete.parent_message_id) {
+          idsToDelete.push(messageToDelete.parent_message_id);
+        }
+        
+        return prev.filter((msg) => !idsToDelete.includes(msg.id) && !idsToDelete.includes(msg._id));
+      });
+      return;
+    }
+
+    try {
+      // Find the message to determine pairing
+      const messageToDelete = messages.find((msg) => msg.id === messageId || msg._id === messageId);
+      if (!messageToDelete) return;
+      
+      const idsToDelete = [messageId];
+      
+      // If deleting user message, find assistant message with parent_message_id
+      if (messageToDelete.sender === 'user') {
+        const assistantMsg = messages.find(msg => msg.parent_message_id === messageId);
+        if (assistantMsg) {
+          const assistantId = assistantMsg.id || assistantMsg._id;
+          if (assistantId) idsToDelete.push(assistantId);
+        }
+      }
+      // If deleting assistant message, find the user message it references
+      else if (messageToDelete.sender === 'assistant' && messageToDelete.parent_message_id) {
+        idsToDelete.push(messageToDelete.parent_message_id);
+      }
+      
+      // Delete all messages from MongoDB (single API call handles pairing)
+      await api.delete(`/api/conversations/${conversationId}/messages/${messageId}`);
+      
+      // Remove from local state
+      setMessages((prev) => prev.filter((msg) => !idsToDelete.includes(msg.id) && !idsToDelete.includes(msg._id)));
+      toast.success('Message(s) deleted');
+    } catch (error) {
+      console.error('Failed to delete message:', error);
+      toast.error('Failed to delete message from server');
+    }
   };
 
   return (
@@ -254,6 +339,8 @@ export const ChatProvider = ({ children }) => {
         clearMessages,
         attachClassification,
         removeClassification,
+        deleteMessage,
+        loadConversation,
       }}
     >
       {children}

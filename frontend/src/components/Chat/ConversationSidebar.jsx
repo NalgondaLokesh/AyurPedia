@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { HiChatBubbleLeftRight, HiPlus, HiTrash, HiClock, HiChevronLeft, HiChevronRight } from 'react-icons/hi2';
 import { useAuth } from '../../context/AuthContext';
+import { useChatContext } from '../../context/ChatContext';
 
 const API_BASE = 'http://localhost:8000/api';
 
@@ -10,6 +11,7 @@ export const ConversationSidebar = ({ isOpen, onClose, onSelectConversation, cur
   const [conversations, setConversations] = useState([]);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const { loadConversation } = useChatContext();
 
   useEffect(() => {
     if (isOpen && token) {
@@ -156,6 +158,7 @@ export const ConversationSidebar = ({ isOpen, onClose, onSelectConversation, cur
                   key={conversation.conversation_id}
                   onClick={() => {
                     onSelectConversation(conversation.conversation_id);
+                    loadConversation(conversation.conversation_id);
                     navigate('/chat');
                     if (window.innerWidth < 1024) onClose();
                   }}

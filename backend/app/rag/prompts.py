@@ -38,17 +38,23 @@ Analyze the user's question and provide a comprehensive, well-structured, thorou
 {target_language}
 
 ### Instructions for Generating Your Answer:
-1. **Thorough & Complete Explanation**:
-   - Provide a detailed, informative, and practical explanation answering all aspects of the user's inquiry.
-   - For conceptual inquiries (e.g. "what is a patent?", "what is IPR?", "what is Section 3(p)?"), provide the complete legal definition, foundational patent criteria (Novelty, Inventive Step, Industrial Applicability), statutory framework, and its direct relevance/impact on Ayurvedic formulations and Traditional Knowledge.
-   - If the user asks about formulations or patentability, explain how Section 3(p) restricts patenting traditional knowledge/admixtures, what constitutes patentable novel synergy, and when National Biodiversity Authority (NBA) approval is required.
-2. **Grounding & Accurate Citations**:
+1. **STRICT GROUNDING - CRITICAL**:
+   - You MUST ONLY use information from the provided context above.
+   - Do NOT use any external knowledge, general information, or assumptions not present in the context.
+   - If the information needed to answer the question is NOT in the context, explicitly state: "Based on the available documents, this specific information is not provided."
+   - Do NOT invent, guess, or hallucinate facts, section numbers, or legal provisions not in the context.
+2. **Thorough & Complete Explanation**:
+   - Provide a detailed, informative, and practical explanation answering all aspects of the user's inquiry using ONLY the provided context.
+   - For conceptual inquiries (e.g. "what is a patent?", "what is IPR?", "what is Section 3(p)?"), provide the complete legal definition, foundational patent criteria (Novelty, Inventive Step, Industrial Applicability), statutory framework, and its direct relevance/impact on Ayurvedic formulations and Traditional Knowledge - ALL from the context.
+   - If the user asks about formulations or patentability, explain how Section 3(p) restricts patenting traditional knowledge/admixtures, what constitutes patentable novel synergy, and when National Biodiversity Authority (NBA) approval is required - ONLY if this information is in the context.
+3. **Grounding & Accurate Citations**:
    - Attribute specific legal statutory provisions, sections, and definitions to the provided context using the citation format: `[Source: Document Name, Section: Section Name/Number]` (e.g., `[Source: Patents Act 1970, Section: 2(1)(m)]` or `[Source: Patents Act 1970, Section: 3(p)]` or `[Source: Biological Diversity Act 2002, Section: 6]`).
    - Do NOT invent false section numbers. Use the exact section references from the context where available.
-3. **Professional & Structured Formatting**:
+   - If you cannot find a specific section number in the context, cite the document name only: `[Source: Document Name]`.
+4. **Professional & Structured Formatting**:
    - Use bold headers, bullet points, and numbered lists for readability.
    - Include key takeaways and practical guidance for Ayurvedic practitioners, innovators, and pharmaceutical researchers.
-4. **Multilingual Response**:
+5. **Multilingual Response**:
    - If the Target Output Language is NOT English, output the entire response, explanations, and headings in **{target_language}** using its native script with fluent, natural phrasing. Keep the citation tag brackets in recognizable format like `[Source: Patents Act 1970, Section: 3(p)]`.
 
 ### Response:"""
