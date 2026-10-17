@@ -807,9 +807,9 @@ This project is developed for **Smart India Hackathon 2026**.
 
 ## Contact 📧
 
-**Team:** AyurPedia  
+**Team:** Antelope
 **Hackathon:** Smart India Hackathon 2026  
-**Email:** [Contact for issues and inquiries]
+**Email:** nalgondalokesh@gmail.com
 
 ## Acknowledgements 🙏
 
